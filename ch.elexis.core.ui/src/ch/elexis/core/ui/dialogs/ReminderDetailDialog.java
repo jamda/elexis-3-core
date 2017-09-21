@@ -1,7 +1,6 @@
 package ch.elexis.core.ui.dialogs;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -33,10 +32,11 @@ import com.tiff.common.ui.datepicker.DatePickerCombo;
 
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
-import ch.elexis.core.model.issue.Type;
 import ch.elexis.core.model.issue.Priority;
 import ch.elexis.core.model.issue.ProcessStatus;
+import ch.elexis.core.model.issue.Type;
 import ch.elexis.core.model.issue.Visibility;
+import ch.elexis.core.ui.dialogs.controls.ReminderVisibilityAndPopupComposite;
 import ch.elexis.core.ui.icons.ImageSize;
 import ch.elexis.core.ui.icons.Images;
 import ch.elexis.data.Anwender;
@@ -60,9 +60,9 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	private Button[] btnPriorities = new Button[3];
 	private Button[] btnProcessStatus = new Button[6];
 	private ComboViewer cvActionType;
-	private ComboViewer cvVisibility;
 	private Button btnNotPatientRelated;
 	private ListViewer lvResponsible;
+	private ReminderVisibilityAndPopupComposite rvapc;
 	
 	/**
 	 * Create the dialog.
@@ -172,9 +172,14 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			@Override
 			public void widgetSelected(SelectionEvent e){
 				if (btnNotPatientRelated.getSelection()) {
+					lblRelatedPatient.setText(Messages.EditReminderDialog_noPatient);
 					patient = null;
 				} else {
 					patient = ElexisEventDispatcher.getSelectedPatient();
+					if(patient == null) {
+						lblRelatedPatient.setText(Messages.EditReminderDialog_noPatientSelected);
+						btnNotPatientRelated.setSelection(true);
+					}
 				}
 				updatePatientLabel();
 				super.widgetSelected(e);
@@ -187,8 +192,8 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		txtSubject.setTextLimit(160);
 		txtSubject.setFocus();
 		
-		txtDescription = new Text(compositeMessage, SWT.BORDER | SWT.WRAP);
-		txtDescription.setMessage("description");
+		txtDescription = new Text(compositeMessage, SWT.BORDER);
+		txtDescription.setMessage(Messages.ReminderDetailDialog_txtDescription_message);
 		txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		txtDescription.setBounds(0, 0, 64, 19);
 		
@@ -200,20 +205,8 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		composite.setLayout(gl_composite);
 		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 1, 1));
 		
-		Label visibleImage = new Label(composite, SWT.None);
-		visibleImage.setImage(Images.IMG_EYE_WO_SHADOW.getImage());
-		
-		cvVisibility = new ComboViewer(composite, SWT.NONE);
-		Combo combo = cvVisibility.getCombo();
-		combo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		cvVisibility.setContentProvider(ArrayContentProvider.getInstance());
-		cvVisibility.setLabelProvider(new LabelProvider() {
-			@Override
-			public String getText(Object element){
-				Visibility vis = (Visibility) element;
-				return vis.getLocaleText();
-			}
-		});
+		rvapc = new ReminderVisibilityAndPopupComposite(composite, SWT.NONE);
+		rvapc.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		Composite compositeSettings = new Composite(container, SWT.BORDER);
 		compositeSettings.setLayout(new GridLayout(2, false));
@@ -341,7 +334,8 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				DatePickerCombo dpc = (DatePickerCombo) e.widget;
 				ProcessStatus curPs =
 					(processStatus == ProcessStatus.DUE || processStatus == ProcessStatus.OVERDUE)
-							? ProcessStatus.OPEN : processStatus;
+							? ProcessStatus.OPEN
+							: processStatus;
 				ProcessStatus newPs =
 					Reminder.determineCurrentStatus(curPs, new TimeTool(dpc.getDate()));
 				setReminderStatus(newPs);
@@ -377,15 +371,13 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			setReminderStatus(reminder.getStatus());
 			cvActionType.setSelection(new StructuredSelection(reminder.getActionType()));
 			lvResponsible.setSelection(new StructuredSelection(reminder.getResponsibles()));
-			btnNotPatientRelated
-				.setSelection(reminder.getCreator().getId().equals(reminder.getKontakt().getId()));
+			btnNotPatientRelated.setSelection(!reminder.isPatientRelated());
 		}
 		
 		updatePatientLabel();
 	}
 	
 	private void updatePatientLabel(){
-		List<Visibility> visVal = new ArrayList<Visibility>(Arrays.asList(Visibility.values()));
 		if (patient != null) {
 			if (reminder != null && reminder.getCreator() != null
 				&& patient.getId().equals(reminder.getCreator().getId())) {
@@ -395,18 +387,10 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				lblRelatedPatient.setBackground(SWTResourceManager.getColor(0, 0, 0));
 				lblRelatedPatient.setForeground(SWTResourceManager.getColor(255, 255, 255));
 			}
-		} else {
-			lblRelatedPatient.setText(Messages.EditReminderDialog_noPatientSelected);
-			visVal.remove(Visibility.ON_PATIENT_SELECTION);
-			visVal.remove(Visibility.POPUP_ON_PATIENT_SELECTION);
-		}
-		cvVisibility.setInput(visVal);
+		} 
 		
-		if (reminder == null) {
-			cvVisibility.setSelection(new StructuredSelection(Visibility.ALWAYS));
-		} else {
-			cvVisibility.setSelection(new StructuredSelection(reminder.getVisibility()));
-		}
+		rvapc.setConfiguredVisibility(reminder.getVisibility(),
+			reminder.isPatientRelated() && patient != null);
 	}
 	
 	private void setReminderPriority(Priority priority){
@@ -441,8 +425,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		
 		String contactId =
 			(btnNotPatientRelated.getSelection()) ? CoreHub.actUser.getId() : patient.getId();
-		Visibility visibility =
-			(Visibility) ((StructuredSelection) cvVisibility.getSelection()).getFirstElement();
+		Visibility visibility = rvapc.getConfiguredVisibility();
 		Type atype = (Type) ((StructuredSelection) cvActionType.getSelection()).getFirstElement();
 		if (atype == null) {
 			atype = Type.COMMON;
@@ -487,4 +470,5 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	public Reminder getReminder(){
 		return reminder;
 	}
+	
 }

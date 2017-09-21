@@ -267,6 +267,15 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 		return Anwender.load(checkNull(get(CREATOR)));
 	}
 	
+	/**
+	 * 
+	 * @return if this is a patient related reminder
+	 * @since 3.4
+	 */
+	public boolean isPatientRelated(){
+		return !getCreator().getId().equals(getKontakt().getId());
+	}
+	
 	private static String PS_REMINDERS_RESPONSIBLE = "SELECT r.ID FROM " + TABLENAME
 		+ " r LEFT JOIN REMINDERS_RESPONSIBLE_LINK rrl ON (r.id = rrl.ReminderId) WHERE rrl.ResponsibleID = ? AND r.deleted = '0'";
 	
