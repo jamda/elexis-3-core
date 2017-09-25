@@ -170,7 +170,7 @@ public class EditReminderDialog extends TitleAreaDialog {
 			
 			// select responsible
 			int index = 0;
-			String uid = mine.get(Reminder.RESPONSIBLE);
+			String uid = mine.get(Reminder.FLD_RESPONSIBLE);
 			java.util.List<Anwender> responsibles = mine.getResponsibles();
 			if (responsibles.size() > 0) { // new method
 				for (Anwender a : responsibles) {

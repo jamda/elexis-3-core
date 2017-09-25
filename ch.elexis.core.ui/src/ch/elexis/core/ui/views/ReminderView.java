@@ -111,7 +111,10 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			if (bVisible) {
 				cv.notify(CommonViewer.Message.update);
 			}
-			
+			/**
+			 * ch.elexis.core.data.events.PatientEventListener will be called on opposite
+			 * Preferences.USR_SHOWPATCHGREMINDER condition.
+			 */
 			if (!CoreHub.userCfg.get(Preferences.USR_SHOWPATCHGREMINDER, true)) {
 				UiDesk.asyncExec(new Runnable() {
 					
@@ -121,7 +124,8 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 						if (list.size() != 0) {
 							StringBuilder sb = new StringBuilder();
 							for (Reminder r : list) {
-								sb.append(r.getMessage()).append("\n\n"); //$NON-NLS-1$
+								sb.append(r.getSubject() + "\n");
+								sb.append(r.getMessage() + "\n\n");
 							}
 							SWTHelper.alert(Messages.ReminderView_importantRemindersCaption,
 								sb.toString());
@@ -204,7 +208,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 						qbe.clear();
 						qbe.add(Reminder.CREATOR, Query.EQUALS, CoreHub.actUser.getId());
 						qbe.or();
-						qbe.add(Reminder.RESPONSIBLE, Query.EQUALS, CoreHub.actUser.getId());
+						qbe.add(Reminder.FLD_RESPONSIBLE, Query.EQUALS, CoreHub.actUser.getId());
 						
 						reminders.addAll(qbe.execute());
 					}

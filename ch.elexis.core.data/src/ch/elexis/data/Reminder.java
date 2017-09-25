@@ -51,17 +51,24 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	public static final String TABLENAME = "REMINDERS";
 	
 	public static final String MESSAGE = "Message";
-	public static final String RESPONSIBLE = "Responsible";
 	public static final String FLD_VISIBILITY = "Typ";
 	public static final String FLD_STATUS = "Status";
 	public static final String DUE = "Due";
 	public static final String CREATOR = "Creator";
 	public static final String KONTAKT_ID = "IdentID";
+	public static final String FLD_RESPONSIBLE = "Responsible";
 	public static final String FLD_PRIORITY = "priority";
 	public static final String FLD_ACTION_TYPE = "actionType";
 	public static final String FLD_SUBJECT = "subject";
 	public static final String FLD_PARAMS = "Params";
 	public static final String FLD_JOINT_RESPONSIBLES = "Responsibles";
+	
+	/**
+	 * To be stored in {@link #FLD_RESPONSIBLE}, making this reminder a responsibility for every user.
+	 * 
+	 * @since 3.4
+	 */
+	public static final String ALL_RESPONSIBLE = "ALL";
 	
 	public enum LabelFields {
 			PAT_ID("PatientNr"), FIRSTNAME("Vorname"), LASTNAME("Name");
@@ -95,7 +102,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	
 	static {
 		addMapping(TABLENAME, KONTAKT_ID, CREATOR + "=OriginID", DUE + "=S:D:DateDue", FLD_STATUS,
-			FLD_VISIBILITY, FLD_PARAMS, MESSAGE, RESPONSIBLE,
+			FLD_VISIBILITY, FLD_PARAMS, MESSAGE, FLD_RESPONSIBLE,
 			FLD_JOINT_RESPONSIBLES + "=JOINT:ResponsibleID:ReminderID:REMINDERS_RESPONSIBLE_LINK",
 			FLD_PRIORITY, FLD_ACTION_TYPE, FLD_SUBJECT);
 	}
@@ -347,9 +354,9 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 		qbe.add(DUE, Query.LESS_OR_EQUAL, new TimeTool().toString(TimeTool.DATE_COMPACT));
 		if (responsible != null) {
 			qbe.startGroup();
-			qbe.add(RESPONSIBLE, Query.EQUALS, responsible.getId());
+			qbe.add(FLD_RESPONSIBLE, Query.EQUALS, responsible.getId());
 			qbe.or();
-			qbe.add(RESPONSIBLE, StringTool.leer, null);
+			qbe.add(FLD_RESPONSIBLE, StringTool.leer, null);
 			qbe.endGroup();
 		}
 		return qbe.execute();

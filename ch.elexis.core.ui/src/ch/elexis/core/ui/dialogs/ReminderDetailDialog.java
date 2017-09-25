@@ -389,8 +389,13 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			}
 		} 
 		
-		rvapc.setConfiguredVisibility(reminder.getVisibility(),
-			reminder.isPatientRelated() && patient != null);
+		if (reminder != null) {
+			rvapc.setConfiguredVisibility(reminder.getVisibility(),
+				reminder.isPatientRelated() && patient != null);
+		} else {
+			rvapc.setConfiguredVisibility(Visibility.ALWAYS, patient != null);
+		}
+		
 	}
 	
 	private void setReminderPriority(Priority priority){
