@@ -13,6 +13,7 @@ package ch.elexis.core.ui.views;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,6 +22,7 @@ import java.util.TreeSet;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.jface.viewers.IColorProvider;
@@ -67,6 +69,7 @@ import ch.elexis.core.ui.util.viewers.CommonViewer;
 import ch.elexis.core.ui.util.viewers.DefaultLabelProvider;
 import ch.elexis.core.ui.util.viewers.SimpleWidgetProvider;
 import ch.elexis.core.ui.util.viewers.ViewerConfigurer;
+import ch.elexis.core.ui.views.reminder.ReminderStatusPopupMenuContribution;
 import ch.elexis.data.Anwender;
 import ch.elexis.data.Patient;
 import ch.elexis.data.PersistentObject;
@@ -231,6 +234,9 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			newReminderAction, deleteReminderAction, null, showOnlyOwnDueReminderToggleAction,
 			showSelfCreatedReminderAction, showOthersRemindersAction, null
 		};
+		
+		
+		
 		List<IAction> actionList = new ArrayList<IAction>();
 		actionList.addAll(Arrays.asList(list));
 		actionList.addAll(Arrays.asList(filterActionType));
@@ -273,7 +279,12 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			}
 		});
 		
-		menu.createViewerContextMenu(cv.getViewerWidget(), actionList.toArray(new IAction[] {}));
+		MenuManager statusSubMenu = new MenuManager("Status");
+		statusSubMenu.setRemoveAllWhenShown(true);
+//		statusSubMenu.add(deleteReminderAction); // we need a pseudo-action
+		statusSubMenu.addMenuListener(new ReminderStatusPopupMenuContribution(cv));
+		
+		menu.createViewerContextMenu(cv.getViewerWidget(), Collections.singletonList(statusSubMenu));
 		cv.getViewerWidget().addFilter(filter);
 		GlobalEventDispatcher.addActivationListener(this, getViewSite().getPart());
 		
