@@ -17,6 +17,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -36,6 +37,7 @@ import ch.elexis.core.model.issue.Priority;
 import ch.elexis.core.model.issue.ProcessStatus;
 import ch.elexis.core.model.issue.Type;
 import ch.elexis.core.model.issue.Visibility;
+import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.dialogs.controls.ReminderVisibilityAndPopupComposite;
 import ch.elexis.core.ui.icons.ImageSize;
 import ch.elexis.core.ui.icons.Images;
@@ -57,12 +59,14 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	private Text txtDescription;
 	private DatePickerCombo dateDuePicker;
 	private Label lblRelatedPatient;
-	private Button[] btnPriorities = new Button[3];
-	private Button[] btnProcessStatus = new Button[6];
+	private Button[] btnProcessStatus = new Button[4];
 	private ComboViewer cvActionType;
 	private Button btnNotPatientRelated;
 	private ListViewer lvResponsible;
 	private ReminderVisibilityAndPopupComposite rvapc;
+	private ComboViewer cvPriority;
+	private Button btnHasDueDate;
+	private Composite dueComposite;
 	
 	/**
 	 * Create the dialog.
@@ -176,7 +180,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 					patient = null;
 				} else {
 					patient = ElexisEventDispatcher.getSelectedPatient();
-					if(patient == null) {
+					if (patient == null) {
 						lblRelatedPatient.setText(Messages.EditReminderDialog_noPatientSelected);
 						btnNotPatientRelated.setSelection(true);
 					}
@@ -207,16 +211,14 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		
 		rvapc = new ReminderVisibilityAndPopupComposite(composite, SWT.NONE);
 		rvapc.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		new Label(composite, SWT.NONE);
 		
-		Composite compositeSettings = new Composite(container, SWT.BORDER);
-		compositeSettings.setLayout(new GridLayout(2, false));
-		compositeSettings.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
-		compositeSettings.setBounds(0, 0, 64, 64);
-		
-		Group grpState = new Group(compositeSettings, SWT.NONE);
-		grpState.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-		grpState.setText(Messages.EditReminderDialog_state);
-		grpState.setLayout(new RowLayout(SWT.HORIZONTAL));
+		Composite compositeState = new Group(container, SWT.SHADOW_NONE);
+		compositeState.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+		RowLayout rl_compState = new RowLayout(SWT.HORIZONTAL);
+		rl_compState.marginTop = 0;
+		rl_compState.marginBottom = 0;
+		compositeState.setLayout(rl_compState);
 		
 		SelectionListener processStatusListener = new SelectionAdapter() {
 			@Override
@@ -226,87 +228,84 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			}
 		};
 		
-		Button btnOpen = new Button(grpState, SWT.RADIO);
+		Button btnOpen = new Button(compositeState, SWT.RADIO);
 		btnOpen.setText(ProcessStatus.OPEN.getLocaleText());
 		btnOpen.setData(ProcessStatus.OPEN);
 		btnOpen.addSelectionListener(processStatusListener);
 		btnProcessStatus[0] = btnOpen;
 		
-		Button btnInProgress = new Button(grpState, SWT.RADIO);
+		Button btnInProgress = new Button(compositeState, SWT.RADIO);
 		btnInProgress.setText(ProcessStatus.IN_PROGRESS.getLocaleText());
 		btnInProgress.setData(ProcessStatus.IN_PROGRESS);
 		btnInProgress.addSelectionListener(processStatusListener);
 		btnProcessStatus[1] = btnInProgress;
 		
-		Button btnClosed = new Button(grpState, SWT.RADIO);
+		Button btnClosed = new Button(compositeState, SWT.RADIO);
 		btnClosed.setText(ProcessStatus.CLOSED.getLocaleText());
 		btnClosed.setData(ProcessStatus.CLOSED);
 		btnClosed.addSelectionListener(processStatusListener);
 		btnProcessStatus[2] = btnClosed;
 		
-		Button btnOnHold = new Button(grpState, SWT.RADIO);
+		Button btnOnHold = new Button(compositeState, SWT.RADIO);
 		btnOnHold.setText(ProcessStatus.ON_HOLD.getLocaleText());
 		btnOnHold.setData(ProcessStatus.ON_HOLD);
 		btnOnHold.addSelectionListener(processStatusListener);
 		btnProcessStatus[3] = btnOnHold;
 		
-		Button btnDue = new Button(grpState, SWT.RADIO);
-		btnDue.setForeground(SWTResourceManager.getColor(255, 69, 0));
-		btnDue.setText(ProcessStatus.DUE.getLocaleText());
-		btnDue.setEnabled(false);
-		btnDue.setData(ProcessStatus.DUE);
-		btnProcessStatus[4] = btnDue;
+		Label separator = new Label(compositeState, SWT.SEPARATOR | SWT.VERTICAL);
+		separator.setLayoutData(new RowData(25, 20));
 		
-		Button btnOverdue = new Button(grpState, SWT.RADIO);
-		btnOverdue.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
-		btnOverdue.setText(ProcessStatus.OVERDUE.getLocaleText());
-		btnOverdue.setEnabled(false);
-		btnOverdue.setData(ProcessStatus.OVERDUE);
-		btnProcessStatus[5] = btnOverdue;
+		dueComposite = new Composite(compositeState, SWT.NONE);
+		GridLayout gl_dueComposite = new GridLayout(2, false);
+		gl_dueComposite.horizontalSpacing = 0;
+		gl_dueComposite.marginWidth = 0;
+		gl_dueComposite.verticalSpacing = 0;
+		gl_dueComposite.marginHeight = 0;
+		dueComposite.setLayout(gl_dueComposite);
 		
-		Group grpPriority = new Group(compositeSettings, SWT.NONE);
-		grpPriority.setText(Messages.ReminderDetailDialog_grpPriority_text);
-		grpPriority.setLayout(new RowLayout(SWT.HORIZONTAL));
-		grpPriority.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-		
-		SelectionListener prioListener = new SelectionAdapter() {
+		btnHasDueDate = new Button(dueComposite, SWT.CHECK);
+		btnHasDueDate.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
+		btnHasDueDate.setText(Messages.EditReminderDialog_dueOn);
+		btnHasDueDate.setSelection(false);
+		btnHasDueDate.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e){
-				Priority prio = (Priority) ((Button) e.widget).getData();
-				setReminderPriority(prio);
+				if (btnHasDueDate.getSelection()) {
+					dateDuePicker.setDate(new Date());
+				} else {
+					dateDuePicker.setDate(null);
+				}
+				dateDuePicker.setEnabled(btnHasDueDate.getSelection());
 			}
-		};
+		});
 		
-		Button btnPrioLow = new Button(grpPriority, SWT.RADIO);
-		btnPrioLow.setText(Messages.ReminderDetailDialog_btnPriorityLow_text);
-		btnPrioLow.setData(Priority.LOW);
-		btnPrioLow.addSelectionListener(prioListener);
-		btnPriorities[0] = btnPrioLow;
+		dateDuePicker = new DatePickerCombo(dueComposite, SWT.BORDER);
+		dateDuePicker.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
+		dateDuePicker.setEnabled(false);
 		
-		Button btnPrioMed = new Button(grpPriority, SWT.RADIO);
-		btnPrioMed.setText(Messages.ReminderDetailDialog_btnPriorityMedium_text);
-		btnPrioMed.setData(Priority.MEDIUM);
-		btnPrioMed.addSelectionListener(prioListener);
-		btnPriorities[1] = btnPrioMed;
+		Label separator2 = new Label(compositeState, SWT.SEPARATOR | SWT.VERTICAL);
+		separator2.setLayoutData(new RowData(25, 20));
 		
-		Button btnPrioHigh = new Button(grpPriority, SWT.RADIO);
-		btnPrioHigh.setText(Messages.ReminderDetailDialog_btnPriorityHigh_text);
-		btnPrioHigh.setData(Priority.HIGH);
-		btnPrioHigh.addSelectionListener(prioListener);
-		btnPriorities[2] = btnPrioHigh;
+		cvPriority = new ComboViewer(compositeState, SWT.NONE);
+		cvPriority.getCombo().setLayoutData(new RowData(50, SWT.DEFAULT));
+		cvPriority.setContentProvider(ArrayContentProvider.getInstance());
+		cvPriority.setLabelProvider(new LabelProvider() {
+			@Override
+			public String getText(Object element){
+				Priority prio = (Priority) element;
+				return prio.getLocaleText();
+			}
+		});
+		cvPriority.setInput(Priority.values());
 		
-		Composite compositeAction = new Composite(compositeSettings, SWT.NONE);
-		compositeAction.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 1, 1));
-		GridLayout gl_compositeAction = new GridLayout(2, false);
-		gl_compositeAction.marginLeft = 2;
-		gl_compositeAction.marginHeight = 0;
-		gl_compositeAction.marginWidth = 0;
-		compositeAction.setLayout(gl_compositeAction);
+		Composite compositeSettings = new Composite(container, SWT.BORDER);
+		compositeSettings.setLayout(new GridLayout(2, false));
+		compositeSettings.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
 		
-		Label labelAction = new Label(compositeAction, SWT.NONE);
+		Label labelAction = new Label(compositeSettings, SWT.NONE);
 		labelAction.setText(Messages.ReminderDetailDialog_labelAction_text);
 		
-		cvActionType = new ComboViewer(compositeAction, SWT.NONE);
+		cvActionType = new ComboViewer(compositeSettings, SWT.NONE);
 		Combo comboActionType = cvActionType.getCombo();
 		comboActionType.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		cvActionType.setContentProvider(ArrayContentProvider.getInstance());
@@ -319,29 +318,6 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		});
 		cvActionType.setInput(Type.values());
 		
-		Composite compositeDueDate = new Composite(compositeSettings, SWT.NONE);
-		compositeDueDate.setLayout(new GridLayout(2, false));
-		compositeDueDate.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
-		
-		Label dueDate = new Label(compositeDueDate, SWT.CHECK);
-		dueDate.setText(Messages.EditReminderDialog_dueOn);
-		
-		dateDuePicker = new DatePickerCombo(compositeDueDate, SWT.BORDER);
-		dateDuePicker.setDate(new Date());
-		dateDuePicker.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e){
-				DatePickerCombo dpc = (DatePickerCombo) e.widget;
-				ProcessStatus curPs =
-					(processStatus == ProcessStatus.DUE || processStatus == ProcessStatus.OVERDUE)
-							? ProcessStatus.OPEN
-							: processStatus;
-				ProcessStatus newPs =
-					Reminder.determineCurrentStatus(curPs, new TimeTool(dpc.getDate()));
-				setReminderStatus(newPs);
-			}
-		});
-		
 		initialize();
 		
 		return area;
@@ -351,14 +327,16 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		if (reminder == null) {
 			patient = ElexisEventDispatcher.getSelectedPatient();
 			
-			setReminderPriority(Priority.MEDIUM);
 			setReminderStatus(ProcessStatus.OPEN);
 			lvResponsible.setSelection(new StructuredSelection(CoreHub.actUser));
 			cvActionType.setSelection(new StructuredSelection(Type.COMMON));
+			cvPriority.setSelection(new StructuredSelection(Priority.MEDIUM));
 		} else {
 			patient = reminder.getKontakt();
 			TimeTool dateDue = reminder.getDateDue();
-			dateDuePicker.setDate(dateDue.getTime());
+			dateDuePicker.setEnabled(dateDue != null);
+			dateDuePicker.setDate((dateDue != null) ? dateDue.getTime() : null);
+			btnHasDueDate.setSelection(dateDue != null);
 			
 			String[] strings = reminder.get(false, Reminder.FLD_SUBJECT, Reminder.MESSAGE);
 			if (strings[0].length() == 0 && strings[1].length() > 0) {
@@ -367,8 +345,8 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				txtSubject.setText(reminder.getSubject());
 			}
 			txtDescription.setText(strings[1]);
-			setReminderPriority(reminder.getPriority());
-			setReminderStatus(reminder.getStatus());
+			cvPriority.setSelection(new StructuredSelection(reminder.getPriority()));
+			setReminderStatus(reminder.getProcessStatus());
 			cvActionType.setSelection(new StructuredSelection(reminder.getActionType()));
 			lvResponsible.setSelection(new StructuredSelection(reminder.getResponsibles()));
 			btnNotPatientRelated.setSelection(!reminder.isPatientRelated());
@@ -387,7 +365,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				lblRelatedPatient.setBackground(SWTResourceManager.getColor(0, 0, 0));
 				lblRelatedPatient.setForeground(SWTResourceManager.getColor(255, 255, 255));
 			}
-		} 
+		}
 		
 		if (reminder != null) {
 			rvapc.setConfiguredVisibility(reminder.getVisibility(),
@@ -398,17 +376,22 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		
 	}
 	
-	private void setReminderPriority(Priority priority){
-		this.priority = priority;
-		for (int i = 0; i < btnPriorities.length; i++) {
-			btnPriorities[i].setSelection(priority.numericValue() == i);
-		}
-	}
-	
 	private void setReminderStatus(ProcessStatus processStatus){
 		this.processStatus = processStatus;
+		int dueState = reminder.getDueState();
+		// TODO for DUE and OVERDUE
 		for (int i = 0; i < btnProcessStatus.length; i++) {
 			btnProcessStatus[i].setSelection(btnProcessStatus[i].getData() == processStatus);
+			if (dueState > 0 && (btnProcessStatus[i].getData() == processStatus)) {
+				btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_RED));
+			} else {
+				btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_BLACK));
+			}
+		}
+		if(dueState>0) {
+			dueComposite.setBackground(UiDesk.getColor(UiDesk.COL_RED));
+		} else {
+			dueComposite.setBackground(UiDesk.getColor(UiDesk.COL_BLACK));
 		}
 	}
 	
@@ -423,7 +406,10 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	}
 	
 	private void performOk(){
-		String due = new TimeTool(dateDuePicker.getDate().getTime()).toString(TimeTool.DATE_GER);
+		String due = null;
+		if (btnHasDueDate.getSelection()) {
+			due = new TimeTool(dateDuePicker.getDate().getTime()).toString(TimeTool.DATE_GER);
+		}
 		if (reminder == null) {
 			reminder = new Reminder(null, due, Visibility.ALWAYS, "", "");
 		}
@@ -446,6 +432,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			Integer.toString(visibility.numericValue()), due,
 			Integer.toString(atype.numericValue()));
 		
+		// TODO ALL
 		reminder.getResponsibles().stream().forEachOrdered(r -> reminder.removeResponsible(r));
 		
 		StructuredSelection ss = (StructuredSelection) lvResponsible.getSelection();

@@ -13,7 +13,6 @@ package ch.elexis.core.ui.views;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,8 +20,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IAction;
-import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.action.IContributionItem;
+import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.jface.viewers.IColorProvider;
@@ -69,7 +70,7 @@ import ch.elexis.core.ui.util.viewers.CommonViewer;
 import ch.elexis.core.ui.util.viewers.DefaultLabelProvider;
 import ch.elexis.core.ui.util.viewers.SimpleWidgetProvider;
 import ch.elexis.core.ui.util.viewers.ViewerConfigurer;
-import ch.elexis.core.ui.views.reminder.ReminderStatusPopupMenuContribution;
+import ch.elexis.core.ui.views.reminder.ReminderStatusSubMenu;
 import ch.elexis.data.Anwender;
 import ch.elexis.data.Patient;
 import ch.elexis.data.PersistentObject;
@@ -235,17 +236,15 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			showSelfCreatedReminderAction, showOthersRemindersAction, null
 		};
 		
-		
-		
-		List<IAction> actionList = new ArrayList<IAction>();
-		actionList.addAll(Arrays.asList(list));
-		actionList.addAll(Arrays.asList(filterActionType));
-		actionList.add(null);
-		actionList.add(selectPatientAction);
+		List<IAction> toolbarActionList = new ArrayList<IAction>();
+		toolbarActionList.addAll(Arrays.asList(list));
+		toolbarActionList.addAll(Arrays.asList(filterActionType));
+		toolbarActionList.add(null);
+		toolbarActionList.add(selectPatientAction);
 		
 		ViewMenus menu = new ViewMenus(getViewSite());
 		menu.createToolbar(newReminderAction, toggleAutoSelectPatientAction);
-		menu.createMenu(actionList.toArray(new IAction[] {}));
+		menu.createMenu(toolbarActionList.toArray(new IAction[] {}));
 		
 		if (CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
 			showOthersRemindersAction.setEnabled(true);
@@ -279,12 +278,12 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			}
 		});
 		
-		MenuManager statusSubMenu = new MenuManager("Status");
-		statusSubMenu.setRemoveAllWhenShown(true);
-//		statusSubMenu.add(deleteReminderAction); // we need a pseudo-action
-		statusSubMenu.addMenuListener(new ReminderStatusPopupMenuContribution(cv));
-		
-		menu.createViewerContextMenu(cv.getViewerWidget(), Collections.singletonList(statusSubMenu));
+		List<IContributionItem> popupMenuActionList = new ArrayList<>();
+		popupMenuActionList.add(new ReminderStatusSubMenu(cv));
+		popupMenuActionList.add(new ActionContributionItem(selectPatientAction));
+		popupMenuActionList.add(new Separator());
+		popupMenuActionList.addAll(ViewMenus.convertActionsToContributionItems((list)));
+		menu.createViewerContextMenu(cv.getViewerWidget(), popupMenuActionList);
 		cv.getViewerWidget().addFilter(filter);
 		GlobalEventDispatcher.addActivationListener(this, getViewSite().getPart());
 		

@@ -23,6 +23,7 @@ import java.util.Set;
 import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.jdt.NonNull;
+import ch.elexis.core.jdt.Nullable;
 import ch.elexis.core.model.issue.Priority;
 import ch.elexis.core.model.issue.ProcessStatus;
 import ch.elexis.core.model.issue.Type;
@@ -64,7 +65,8 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	public static final String FLD_JOINT_RESPONSIBLES = "Responsibles";
 	
 	/**
-	 * To be stored in {@link #FLD_RESPONSIBLE}, making this reminder a responsibility for every user.
+	 * To be stored in {@link #FLD_RESPONSIBLE}, making this reminder a responsibility for every
+	 * user.
 	 * 
 	 * @since 3.4
 	 */
@@ -224,6 +226,31 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 		return givenStatus;
 	}
 	
+	/**
+	 * Get the current reminder processing state
+	 * 
+	 * @return the current processing state
+	 * @since 3.4
+	 */
+	public ProcessStatus getProcessStatus(){
+		return ProcessStatus.byNumericSafe(get(FLD_STATUS));
+	}
+	
+	/**
+	 * Set the current reminder processing state
+	 * 
+	 * @param processStatus
+	 * @since 3.4
+	 */
+	public void setProcessStatus(ProcessStatus processStatus){
+		set(FLD_STATUS, Byte.toString((byte) processStatus.ordinal()));
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @deprecated
+	 */
 	public ProcessStatus getStatus(){
 		ProcessStatus ps = ProcessStatus.byNumericSafe(get(FLD_STATUS));
 		return Reminder.determineCurrentStatus(ps, getDateDue());
@@ -233,32 +260,48 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 		return checkNull(get(MESSAGE));
 	}
 	
+	/**
+	 * 
+	 * @param s
+	 * @deprecated
+	 */
 	public void setStatus(ProcessStatus s){
 		set(FLD_STATUS, Byte.toString((byte) s.ordinal()));
 	}
 	
-	public TimeTool getDateDue(){
-		TimeTool ret = new TimeTool(get(DUE));
-		ret.chop(3);
-		return ret;
+	/**
+	 * Returns the date this reminder is due
+	 * 
+	 * @return <code>null</code> or the respective date
+	 */
+	public @Nullable TimeTool getDateDue(){
+		String string = get(DUE);
+		if (string != null) {
+			TimeTool ret = new TimeTool(get(DUE));
+			ret.chop(3);
+			return ret;
+		}
+		return null;
 	}
 	
-	public boolean isDue(){
-		TimeTool now = new TimeTool();
-		TimeTool mine = getDateDue();
-		if (mine.isEqual(now)) {
-			return true;
+	/**
+	 * 
+	 * @return 0 if not yet due (due in the future), 1 if due (due today), 2 if overdue (due in the
+	 *         past)
+	 * @since 3.4
+	 */
+	public int getDueState(){
+		TimeTool dueDate = getDateDue();
+		if (dueDate != null) {
+			TimeTool now = new TimeTool();
+			if (dueDate.isBefore(now)) {
+				return 2;
+			}
+			if (dueDate.isEqual(now)) {
+				return 1;
+			}
 		}
-		return false;
-	}
-	
-	public boolean isOverdue(){
-		TimeTool now = new TimeTool();
-		TimeTool mine = getDateDue();
-		if (mine.isBefore(now)) {
-			return true;
-		}
-		return false;
+		return 0;
 	}
 	
 	public List<Anwender> getResponsibles(){
