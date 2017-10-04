@@ -2,16 +2,17 @@ package ch.elexis.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
 
+import ch.elexis.core.constants.StringConstants;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
@@ -44,21 +45,26 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 	}
 	
 	@Test
-	public void testAddRemoveResponsible() throws InterruptedException{
+	public void testSetResponsibleUser() throws InterruptedException{
 		Reminder reminder = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
 			Visibility.ALWAYS, "", "TestMessage");
 		long lastUpdate = reminder.getLastUpdate();
 		assertNotSame(0L, reminder.getLastUpdate());
 		Thread.sleep(2);
-		reminder.addResponsible(anwender);
-		reminder.addResponsible(anwender);
+		reminder.setResponsible(Collections.singletonList(anwender));
 		assertTrue(reminder.getLastUpdate() > lastUpdate);
 		assertEquals(1, reminder.getResponsibles().size());
+		assertEquals(StringConstants.EMPTY, reminder.get(Reminder.FLD_RESPONSIBLE));
 		lastUpdate = reminder.getLastUpdate();
 		Thread.sleep(2);
-		reminder.removeResponsible(anwender);
+		reminder.setResponsible(new ArrayList<Anwender>());
 		assertTrue(reminder.getLastUpdate() > lastUpdate);
 		assertEquals(0, reminder.getResponsibles().size());
+		assertEquals(StringConstants.EMPTY, reminder.get(Reminder.FLD_RESPONSIBLE));
+		reminder.setResponsible(null);
+		assertTrue(reminder.getLastUpdate() > lastUpdate);
+		assertNull(reminder.getResponsibles());
+		assertEquals(Reminder.ALL_RESPONSIBLE, reminder.get(Reminder.FLD_RESPONSIBLE));
 		reminder.delete();
 	}
 	
@@ -66,19 +72,20 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 	public void testFindOpenRemindersResponsibleFor(){
 		Reminder reminderClosed = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
 			Visibility.ALWAYS, "", "TestMessage");
-		reminderClosed.addResponsible(CoreHub.actUser);
+		reminderClosed.setResponsible(Collections.singletonList(CoreHub.actUser));
 		reminderClosed.set(Reminder.FLD_STATUS,
 			Integer.toString(ProcessStatus.CLOSED.numericValue()));
 		
 		Reminder reminder = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
 			Visibility.ALWAYS, "", "TestMessage");
-		reminder.addResponsible(CoreHub.actUser);
+		reminder.setResponsible(Collections.singletonList(CoreHub.actUser));
+		List<Reminder> findOpenRemindersResponsibleFor = Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser, false, null, false);
 		assertEquals(1,
-			Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser, false, null, false).size());
+			findOpenRemindersResponsibleFor.size());
 		
 		Reminder patientSpecificReminder = new Reminder(patient,
 			new TimeTool().toString(TimeTool.DATE_GER), Visibility.ALWAYS, "", "TestMessage");
-		patientSpecificReminder.addResponsible(CoreHub.actUser);
+		patientSpecificReminder.setResponsible(null);
 		assertEquals(2,
 			Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser, false, null, false).size());
 		assertEquals(1,
@@ -86,7 +93,7 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 		
 		Reminder popupReminder = new Reminder(patient, new TimeTool().toString(TimeTool.DATE_GER),
 			Visibility.POPUP_ON_PATIENT_SELECTION, "", "TestMessage");
-		popupReminder.addResponsible(CoreHub.actUser);
+		popupReminder.setResponsible(Collections.singletonList(CoreHub.actUser));
 		assertEquals(3,
 			Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser, false, null, false).size());
 		assertEquals(1,
@@ -97,12 +104,11 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 		TimeTool timeTool = new TimeTool(LocalDate.now().minusDays(1));
 		Reminder dueReminder = new Reminder(null, timeTool.toString(TimeTool.DATE_GER),
 			Visibility.ALWAYS, "", "TestMessage");
-		dueReminder.addResponsible(anwender);
+		dueReminder.setResponsible(Collections.singletonList(anwender));
 		// is 120217
 		List<Reminder> dueReminders =
 			Reminder.findOpenRemindersResponsibleFor(anwender, true, null, false);
-		assertEquals(1, dueReminders.size());
-		assertEquals(dueReminder.getId(), dueReminders.get(0).getId());
+		assertEquals(2, dueReminders.size());
 		
 		dueReminder.delete();
 		reminderClosed.delete();
@@ -110,4 +116,28 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 		patientSpecificReminder.delete();
 		popupReminder.delete();
 	}
+	
+	@Test
+	public void testFindAllUserIsResponsibleFor(){
+		Reminder reminderClosed = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
+			Visibility.ALWAYS, "", "TestMessage");
+		reminderClosed.setResponsible(Collections.singletonList(CoreHub.actUser));
+		reminderClosed.set(Reminder.FLD_STATUS,
+			Integer.toString(ProcessStatus.CLOSED.numericValue()));
+		
+		Reminder reminder = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
+			Visibility.ALWAYS, "", "TestMessage");
+		reminder.setResponsible(Collections.singletonList(CoreHub.actUser));
+		
+		Reminder reminderAll = new Reminder(null, new TimeTool().toString(TimeTool.DATE_GER),
+			Visibility.ALWAYS, "", "TestMessage");
+		reminderAll.setResponsible(null);
+		
+		assertEquals(3, Reminder.findAllUserIsResponsibleFor(CoreHub.actUser, false).size());
+		
+		reminderClosed.delete();
+		reminder.delete();
+		reminderAll.delete();
+	}
+	
 }

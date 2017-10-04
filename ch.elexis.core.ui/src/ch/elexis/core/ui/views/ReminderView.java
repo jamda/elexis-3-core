@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IAction;
@@ -34,15 +35,24 @@ import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.part.ViewPart;
 
 import ch.elexis.admin.AccessControlDefaults;
 import ch.elexis.core.constants.Preferences;
+import ch.elexis.core.constants.StringConstants;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
@@ -77,7 +87,6 @@ import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
 import ch.elexis.data.Reminder;
 import ch.rgw.io.Settings;
-import ch.rgw.tools.TimeTool;
 
 public class ReminderView extends ViewPart implements IActivationListener, HeartListener {
 	public static final String ID = "ch.elexis.reminderview"; //$NON-NLS-1$
@@ -172,68 +181,63 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		}
 	};
 	
-	final CommonViewer cv;
-	ViewerConfigurer vc;
-	Query<Reminder> qbe;
-	Settings cfg;
-	ReminderFilter filter;
+	private CommonViewer cv = new CommonViewer();
+	private ViewerConfigurer vc;
+	private Query<Reminder> qbe = new Query<Reminder>(Reminder.class);
+	private ReminderFilter filter = new ReminderFilter();
 	private Patient actPatient;
-	
-	public ReminderView(){
-		cv = new CommonViewer();
-		qbe = new Query<Reminder>(Reminder.class);
-		Patient.load("0");
-	}
+	private Text txtSearch;
 	
 	@Override
 	public void createPartControl(final Composite parent){
+		Composite content = new Composite(parent, SWT.NONE);
+		content.setLayout(new GridLayout(1, false));
+		Composite header = new Composite(content, SWT.NONE);
+		GridLayout gl_header = new GridLayout(2, false);
+		gl_header.horizontalSpacing = 0;
+		gl_header.marginWidth = 0;
+		gl_header.marginHeight = 0;
+		header.setLayout(gl_header);
+		header.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		
+		txtSearch = new Text(header, SWT.SEARCH);
+		txtSearch.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		txtSearch.setMessage(Messages.ReminderView_txtSearch_message);
+		txtSearch.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e){
+				filter.setFilterText(txtSearch.getText());
+				cv.notify(CommonViewer.Message.update_keeplabels);
+			}
+		});
+		
+		Label btnClear = new Label(header, SWT.NONE);
+		btnClear.setImage(Images.IMG_CLEAR.getImage());
+		btnClear.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e){
+				txtSearch.setText(StringConstants.EMPTY);
+				filter.setFilterText(null);
+				cv.notify(CommonViewer.Message.update_keeplabels);
+			}
+		});
+		
 		reminderLabelProvider.updateUserConfiguration();
 		
-		filter = new ReminderFilter();
-		vc = new ViewerConfigurer(new CommonContentProviderAdapter() {
-			@Override
-			public Object[] getElements(final Object inputElement){
-				// Display reminders only if one is logged in
-				if (CoreHub.actUser == null) {
-					return new Object[0];
-				}
-				
-				SortedSet<Reminder> reminders = new TreeSet<Reminder>();
-				
-				if (showOthersReminders
-					&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
-					qbe.clear();
-					reminders.addAll(qbe.execute());
-				} else {
-					reminders.addAll(Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser,
-						showOnlyDueReminders, null, false));
-					
-					if (showSelfCreatedReminders) {
-						qbe.clear();
-						qbe.add(Reminder.CREATOR, Query.EQUALS, CoreHub.actUser.getId());
-						qbe.or();
-						qbe.add(Reminder.FLD_RESPONSIBLE, Query.EQUALS, CoreHub.actUser.getId());
-						
-						reminders.addAll(qbe.execute());
-					}
-				}
-				
-				if (filterActionSet.size() > 0) {
-					reminders.removeIf(
-						p -> (filterActionSet.contains(p.getActionType().numericValue())));
-				}
-				
-				return reminders.toArray();
-				
-			}
-		}, reminderLabelProvider, null, new ViewerConfigurer.DefaultButtonProvider(),
+		CommonContentProviderAdapter contentProvider = new ReminderViewCommonContentProvider();
+		vc = new ViewerConfigurer(contentProvider, reminderLabelProvider, null,
+			new ViewerConfigurer.DefaultButtonProvider(),
 			new SimpleWidgetProvider(SimpleWidgetProvider.TYPE_LAZYLIST, SWT.MULTI, cv));
 		
 		makeActions();
 		
+		Action labelFilterAction = new Action("Anzeigen-Filter") {};
+		labelFilterAction.setEnabled(false);
+		
 		IAction[] list = new IAction[] {
-			newReminderAction, deleteReminderAction, null, showOnlyOwnDueReminderToggleAction,
-			showSelfCreatedReminderAction, showOthersRemindersAction, null
+			newReminderAction, deleteReminderAction, null, labelFilterAction,
+			showOnlyOwnDueReminderToggleAction, showSelfCreatedReminderAction,
+			showOthersRemindersAction, null
 		};
 		
 		List<IAction> toolbarActionList = new ArrayList<IAction>();
@@ -253,7 +257,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		} else {
 			showOthersRemindersAction.setEnabled(false);
 		}
-		cv.create(vc, parent, SWT.NONE, getViewSite());
+		cv.create(vc, content, SWT.NONE, getViewSite());
 		cv.addDoubleClickListener(new CommonViewer.DoubleClickListener() {
 			public void doubleClicked(final PersistentObject obj, final CommonViewer cv){
 				Reminder reminder = (Reminder) obj;
@@ -329,83 +333,6 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			return Images.IMG_MAIL_SEND;
 		default:
 			return Images.IMG_EMPTY_TRANSPARENT;
-		}
-	}
-	
-	class ReminderLabelProvider extends DefaultLabelProvider
-			implements IColorProvider, IFontProvider {
-		
-		private Font boldFont;
-		private Color colorDue;
-		private Color colorOverdue;
-		private Color colorOpen;
-		
-		public Color getBackground(final Object element){
-			if (element instanceof Reminder) {
-				ProcessStatus stat = ((Reminder) element).getStatus();
-				if (stat == ProcessStatus.DUE) {
-					return colorDue;
-				} else if (stat == ProcessStatus.OVERDUE) {
-					return colorOverdue;
-				} else if (stat == ProcessStatus.OPEN) {
-					return colorOpen;
-				} else {
-					return null;
-				}
-			}
-			return null;
-		}
-		
-		public void updateUserConfiguration(){
-			cfg = CoreHub.userCfg.getBranch(Preferences.USR_REMINDERCOLORS, true);
-			colorDue = UiDesk.getColorFromRGB(cfg.get(ProcessStatus.DUE.getLocaleText(), "FFFFFF")); //$NON-NLS-1$;
-			colorOverdue =
-				UiDesk.getColorFromRGB(cfg.get(ProcessStatus.OVERDUE.getLocaleText(), "FF0000")); //$NON-NLS-1$
-			colorOpen =
-				UiDesk.getColorFromRGB(cfg.get(ProcessStatus.OPEN.getLocaleText(), "00FF00")); //$NON-NLS-1$
-		}
-		
-		public Color getForeground(final Object element){
-			Reminder reminder = (Reminder) element;
-			Priority prio = reminder.getPriority();
-			if (Priority.LOW == prio) {
-				return UiDesk.getColor(UiDesk.COL_GREY);
-			}
-			return null;
-		}
-		
-		@Override
-		public Image getColumnImage(Object element, int columnIndex){
-			Reminder reminder = (Reminder) element;
-			Type actionType = reminder.getActionType();
-			return determineActionTypeImage(actionType).getImage();
-		}
-		
-		@Override
-		public String getColumnText(Object element, int column){
-			Reminder reminder = (Reminder) element;
-			ProcessStatus status = reminder.getStatus();
-			if (ProcessStatus.CLOSED == status) {
-				return "[" + status.getLocaleText() + "] " + super.getText(element);
-			}
-			return super.getText(element);
-		}
-		
-		@Override
-		public Font getFont(Object element){
-			Reminder reminder = (Reminder) element;
-			if (boldFont == null) {
-				Display disp = Display.getCurrent();
-				Font defaultFont = cv.getViewerWidget().getControl().getFont();
-				FontDescriptor boldDescriptor =
-					FontDescriptor.createFrom(defaultFont).setStyle(SWT.BOLD);
-				boldFont = boldDescriptor.createFont(disp);
-			}
-			Priority prio = reminder.getPriority();
-			if (Priority.HIGH == prio) {
-				return boldFont;
-			}
-			return null;
 		}
 	}
 	
@@ -580,32 +507,164 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		}
 	}
 	
-	class ReminderFilter extends ViewerFilter {
+	private class ReminderLabelProvider extends DefaultLabelProvider
+			implements IColorProvider, IFontProvider {
+		
+		private Font boldFont;
+		private Color colorDue;
+		private Color colorOverdue;
+		private Color colorOpen;
+		
+		public Color getBackground(final Object element){
+			if (element instanceof Reminder) {
+				ProcessStatus stat = ((Reminder) element).getStatus();
+				if (stat == ProcessStatus.DUE) {
+					return colorDue;
+				} else if (stat == ProcessStatus.OVERDUE) {
+					return colorOverdue;
+				} else if (stat == ProcessStatus.OPEN) {
+					return colorOpen;
+				} else {
+					return null;
+				}
+			}
+			return null;
+		}
+		
+		public void updateUserConfiguration(){
+			Settings cfg = CoreHub.userCfg.getBranch(Preferences.USR_REMINDERCOLORS, true);
+			colorDue = UiDesk.getColorFromRGB(cfg.get(ProcessStatus.DUE.getLocaleText(), "FFFFFF")); //$NON-NLS-1$;
+			colorOverdue =
+				UiDesk.getColorFromRGB(cfg.get(ProcessStatus.OVERDUE.getLocaleText(), "FF0000")); //$NON-NLS-1$
+			colorOpen =
+				UiDesk.getColorFromRGB(cfg.get(ProcessStatus.OPEN.getLocaleText(), "00FF00")); //$NON-NLS-1$
+		}
+		
+		public Color getForeground(final Object element){
+			Reminder reminder = (Reminder) element;
+			Priority prio = reminder.getPriority();
+			if (Priority.LOW == prio) {
+				return UiDesk.getColor(UiDesk.COL_GREY);
+			}
+			return null;
+		}
+		
+		@Override
+		public Image getColumnImage(Object element, int columnIndex){
+			Reminder reminder = (Reminder) element;
+			Type actionType = reminder.getActionType();
+			return determineActionTypeImage(actionType).getImage();
+		}
+		
+		@Override
+		public String getColumnText(Object element, int column){
+			Reminder reminder = (Reminder) element;
+			ProcessStatus status = reminder.getStatus();
+			if (ProcessStatus.CLOSED == status || ProcessStatus.ON_HOLD == status) {
+				return "[" + status.getLocaleText() + "] " + super.getText(element);
+			}
+			return super.getText(element);
+		}
+		
+		@Override
+		public Font getFont(Object element){
+			Reminder reminder = (Reminder) element;
+			if (boldFont == null) {
+				Display disp = Display.getCurrent();
+				Font defaultFont = cv.getViewerWidget().getControl().getFont();
+				FontDescriptor boldDescriptor =
+					FontDescriptor.createFrom(defaultFont).setStyle(SWT.BOLD);
+				boldFont = boldDescriptor.createFont(disp);
+			}
+			Priority prio = reminder.getPriority();
+			if (Priority.HIGH == prio) {
+				return boldFont;
+			}
+			return null;
+		}
+	}
+	
+	private class ReminderFilter extends ViewerFilter {
+		
+		private String filterText;
+		
 		@Override
 		public boolean select(final Viewer viewer, final Object parentElement,
 			final Object element){
+			
 			if (element instanceof Reminder) {
 				Reminder check = (Reminder) element;
 				if (showOnlyOwnDueReminderToggleAction.isChecked()) {
-					if (check.getDateDue().isAfter(new TimeTool())) {
-						return false;
-					}
-					if (check.getStatus().ordinal() > 2) {
+					int determineDueState = Reminder.determineDueState(check.getDateDue());
+					if (determineDueState == 0) {
 						return false;
 					}
 				}
 				Patient act = ElexisEventDispatcher.getSelectedPatient();
+				String[] vals = null;
 				if (act != null) {
-					String[] vals = check.get(true, Reminder.KONTAKT_ID, Reminder.FLD_VISIBILITY);
-					if (!vals[0].equals(act.getId())) {
-						if (Visibility.byNumericSafe(vals[1]) != Visibility.ALWAYS) {
+					vals = check.get(true, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE,
+						Reminder.KONTAKT_ID, Reminder.FLD_VISIBILITY);
+					if (!vals[2].equals(act.getId())) {
+						if (Visibility.byNumericSafe(vals[3]) != Visibility.ALWAYS) {
 							return false;
 						}
 					}
 				}
 				
+				if (filterText != null && filterText.length() > 0) {
+					if (vals == null) {
+						vals = check.get(true, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE);
+					}
+					
+					if (!StringUtils.containsIgnoreCase(vals[0], filterText)
+						&& !StringUtils.containsIgnoreCase(vals[1], filterText)) {
+						return false;
+					}
+				}
 			}
 			return true;
+		}
+		
+		public void setFilterText(String text){
+			filterText = text;
+		}
+	}
+	
+	private class ReminderViewCommonContentProvider extends CommonContentProviderAdapter {
+		@Override
+		public Object[] getElements(final Object inputElement){
+			// Display reminders only if one is logged in
+			if (CoreHub.actUser == null) {
+				return new Object[0];
+			}
+			
+			SortedSet<Reminder> reminders = new TreeSet<Reminder>();
+			
+			if (showOthersReminders
+				&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
+				qbe.clear();
+				reminders.addAll(qbe.execute());
+			} else {
+				reminders.addAll(Reminder.findOpenRemindersResponsibleFor(CoreHub.actUser,
+					showOnlyDueReminders, null, false));
+				
+				if (showSelfCreatedReminders) {
+					qbe.clear();
+					qbe.add(Reminder.FLD_CREATOR, Query.EQUALS, CoreHub.actUser.getId());
+					qbe.or();
+					qbe.add(Reminder.FLD_RESPONSIBLE, Query.EQUALS, CoreHub.actUser.getId());
+					
+					reminders.addAll(qbe.execute());
+				}
+			}
+			
+			if (filterActionSet.size() > 0) {
+				reminders
+					.removeIf(p -> (filterActionSet.contains(p.getActionType().numericValue())));
+			}
+			
+			return reminders.toArray();
 		}
 	}
 }

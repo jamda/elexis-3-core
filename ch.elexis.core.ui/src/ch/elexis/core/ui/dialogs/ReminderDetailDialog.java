@@ -1,16 +1,21 @@
 package ch.elexis.core.ui.dialogs;
 
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ComboViewer;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.ListViewer;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerComparator;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -50,10 +55,15 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	
 	private static final String TX_ALL = Messages.EditReminderDialog_all; //$NON-NLS-1$
 	
-	private Reminder reminder;
-	private Patient patient;
-	private Priority priority;
-	private ProcessStatus processStatus;
+	private Reminder reminder = null;
+	private Patient patient = null;
+	
+	private Priority priority = Priority.MEDIUM;
+	private ProcessStatus processStatus = ProcessStatus.OPEN;
+	private Type actionType = Type.COMMON;
+	private TimeTool dateDue = null;
+	@SuppressWarnings("rawtypes")
+	private List responsibles = Collections.singletonList(CoreHub.actUser);
 	
 	private Text txtSubject;
 	private Text txtDescription;
@@ -110,6 +120,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	 * 
 	 * @param parent
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	protected Control createDialogArea(Composite parent){
 		Composite area = (Composite) super.createDialogArea(parent);
@@ -144,6 +155,25 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				}
 				return element.toString();
 			}
+		});
+		lvResponsible.setComparator(new ViewerComparator() {
+			@Override
+			public int compare(Viewer viewer, Object e1, Object e2){
+				if (e1 instanceof String) {
+					// to pin TX_ALL to the list head
+					return -1;
+				}
+				if (e2 instanceof String) {
+					// to pin TX_ALL to the list head
+					return 1;
+				}
+				String label1 = ((Anwender) e1).getLabel();
+				String label2 = ((Anwender) e2).getLabel();
+				return label1.toLowerCase().compareTo(label2.toLowerCase());
+			}
+		});
+		lvResponsible.addSelectionChangedListener(sc->{
+			responsibles = ((StructuredSelection)sc.getSelection()).toList();
 		});
 		List<Object> inputList = new ArrayList<Object>();
 		inputList.add(TX_ALL);
@@ -185,7 +215,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 						btnNotPatientRelated.setSelection(true);
 					}
 				}
-				updatePatientLabel();
+				updateModelToTarget();
 				super.widgetSelected(e);
 			}
 		});
@@ -196,7 +226,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		txtSubject.setTextLimit(160);
 		txtSubject.setFocus();
 		
-		txtDescription = new Text(compositeMessage, SWT.BORDER);
+		txtDescription = new Text(compositeMessage, SWT.BORDER | SWT.WRAP);
 		txtDescription.setMessage(Messages.ReminderDetailDialog_txtDescription_message);
 		txtDescription.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		txtDescription.setBounds(0, 0, 64, 19);
@@ -223,8 +253,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		SelectionListener processStatusListener = new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e){
-				ProcessStatus ps = (ProcessStatus) ((Button) e.widget).getData();
-				setReminderStatus(ps);
+				processStatus = (ProcessStatus) ((Button) e.widget).getData();
 			}
 		};
 		
@@ -271,22 +300,31 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			@Override
 			public void widgetSelected(SelectionEvent e){
 				if (btnHasDueDate.getSelection()) {
-					dateDuePicker.setDate(new Date());
+					dateDue = new TimeTool();
+					dateDuePicker.setDate(dateDue.getTime());
 				} else {
 					dateDuePicker.setDate(null);
+					dateDue = null;
 				}
 				dateDuePicker.setEnabled(btnHasDueDate.getSelection());
+				updateModelToTarget();
 			}
 		});
 		
 		dateDuePicker = new DatePickerCombo(dueComposite, SWT.BORDER);
 		dateDuePicker.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
 		dateDuePicker.setEnabled(false);
+		dateDuePicker.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e){
+				dateDue = new TimeTool(dateDuePicker.getDate().getTime());
+			}
+		});
 		
 		Label separator2 = new Label(compositeState, SWT.SEPARATOR | SWT.VERTICAL);
 		separator2.setLayoutData(new RowData(25, 20));
 		
-		cvPriority = new ComboViewer(compositeState, SWT.NONE);
+		cvPriority = new ComboViewer(compositeState, SWT.SINGLE);
 		cvPriority.getCombo().setLayoutData(new RowData(50, SWT.DEFAULT));
 		cvPriority.setContentProvider(ArrayContentProvider.getInstance());
 		cvPriority.setLabelProvider(new LabelProvider() {
@@ -297,6 +335,9 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			}
 		});
 		cvPriority.setInput(Priority.values());
+		cvPriority.addSelectionChangedListener(s -> {
+			priority = (Priority) ((StructuredSelection) s.getSelection()).getFirstElement();
+		});
 		
 		Composite compositeSettings = new Composite(container, SWT.BORDER);
 		compositeSettings.setLayout(new GridLayout(2, false));
@@ -317,6 +358,12 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 			}
 		});
 		cvActionType.setInput(Type.values());
+		cvActionType.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event){
+				actionType = (Type) ((StructuredSelection) event.getSelection()).getFirstElement();
+			}
+		});
 		
 		initialize();
 		
@@ -326,36 +373,56 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	private void initialize(){
 		if (reminder == null) {
 			patient = ElexisEventDispatcher.getSelectedPatient();
-			
-			setReminderStatus(ProcessStatus.OPEN);
-			lvResponsible.setSelection(new StructuredSelection(CoreHub.actUser));
-			cvActionType.setSelection(new StructuredSelection(Type.COMMON));
-			cvPriority.setSelection(new StructuredSelection(Priority.MEDIUM));
 		} else {
 			patient = reminder.getKontakt();
-			TimeTool dateDue = reminder.getDateDue();
-			dateDuePicker.setEnabled(dateDue != null);
-			dateDuePicker.setDate((dateDue != null) ? dateDue.getTime() : null);
-			btnHasDueDate.setSelection(dateDue != null);
+			dateDue = reminder.getDateDue();
+			priority = reminder.getPriority();
+			processStatus = reminder.getProcessStatus();
+			if (ProcessStatus.DUE == processStatus || ProcessStatus.OVERDUE == processStatus) {
+				processStatus = ProcessStatus.OPEN;
+				if (dateDue == null) {
+					dateDue = new TimeTool();
+					dateDue.addDays(-14);
+				}
+			}
+			actionType = reminder.getActionType();
 			
-			String[] strings = reminder.get(false, Reminder.FLD_SUBJECT, Reminder.MESSAGE);
+			String[] strings = reminder.get(false, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE);
 			if (strings[0].length() == 0 && strings[1].length() > 0) {
 				txtSubject.setText(strings[1]);
 			} else {
 				txtSubject.setText(reminder.getSubject());
 			}
 			txtDescription.setText(strings[1]);
-			cvPriority.setSelection(new StructuredSelection(reminder.getPriority()));
-			setReminderStatus(reminder.getProcessStatus());
-			cvActionType.setSelection(new StructuredSelection(reminder.getActionType()));
-			lvResponsible.setSelection(new StructuredSelection(reminder.getResponsibles()));
+			
 			btnNotPatientRelated.setSelection(!reminder.isPatientRelated());
 		}
 		
-		updatePatientLabel();
+		updateModelToTarget();
 	}
 	
-	private void updatePatientLabel(){
+	private void updateModelToTarget(){
+		if (reminder != null) {
+			rvapc.setConfiguredVisibility(reminder.getVisibility(),
+				reminder.isPatientRelated() && patient != null);
+			 List<Anwender> resp = reminder.getResponsibles();
+			 if(resp==null) {
+				 responsibles = Collections.singletonList(TX_ALL);
+			 } else {
+				 responsibles = resp;
+			 }
+		} else {
+			rvapc.setConfiguredVisibility(Visibility.ALWAYS, patient != null);
+		}
+		
+		lvResponsible.setSelection(new StructuredSelection(responsibles));
+		cvActionType.setSelection(new StructuredSelection(actionType));
+		cvPriority.setSelection(new StructuredSelection(priority));
+		
+		dateDuePicker.setEnabled(dateDue != null);
+		dateDuePicker.setDate((dateDue != null) ? dateDue.getTime() : null);
+		btnHasDueDate.setSelection(dateDue != null);
+		
 		if (patient != null) {
 			if (reminder != null && reminder.getCreator() != null
 				&& patient.getId().equals(reminder.getCreator().getId())) {
@@ -366,32 +433,26 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 				lblRelatedPatient.setForeground(SWTResourceManager.getColor(255, 255, 255));
 			}
 		}
+		btnNotPatientRelated.setSelection(patient == null);
 		
-		if (reminder != null) {
-			rvapc.setConfiguredVisibility(reminder.getVisibility(),
-				reminder.isPatientRelated() && patient != null);
+		int dueState = Reminder.determineDueState(dateDue);
+		if (dueState > 0) {
+			btnHasDueDate.setBackground(UiDesk.getColor(UiDesk.COL_RED));
 		} else {
-			rvapc.setConfiguredVisibility(Visibility.ALWAYS, patient != null);
+			btnHasDueDate.setBackground(null);
 		}
 		
-	}
-	
-	private void setReminderStatus(ProcessStatus processStatus){
-		this.processStatus = processStatus;
-		int dueState = reminder.getDueState();
-		// TODO for DUE and OVERDUE
 		for (int i = 0; i < btnProcessStatus.length; i++) {
 			btnProcessStatus[i].setSelection(btnProcessStatus[i].getData() == processStatus);
-			if (dueState > 0 && (btnProcessStatus[i].getData() == processStatus)) {
-				btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_RED));
+			if (dueState > 0) {
+				if (btnProcessStatus[i].getData() == processStatus) {
+					btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_RED));
+				} else {
+					btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_BLACK));
+				}
 			} else {
 				btnProcessStatus[i].setForeground(UiDesk.getColor(UiDesk.COL_BLACK));
 			}
-		}
-		if(dueState>0) {
-			dueComposite.setBackground(UiDesk.getColor(UiDesk.COL_RED));
-		} else {
-			dueComposite.setBackground(UiDesk.getColor(UiDesk.COL_BLACK));
 		}
 	}
 	
@@ -408,7 +469,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	private void performOk(){
 		String due = null;
 		if (btnHasDueDate.getSelection()) {
-			due = new TimeTool(dateDuePicker.getDate().getTime()).toString(TimeTool.DATE_GER);
+			due = dateDue.toString(TimeTool.DATE_GER);
 		}
 		if (reminder == null) {
 			reminder = new Reminder(null, due, Visibility.ALWAYS, "", "");
@@ -417,32 +478,25 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		String contactId =
 			(btnNotPatientRelated.getSelection()) ? CoreHub.actUser.getId() : patient.getId();
 		Visibility visibility = rvapc.getConfiguredVisibility();
-		Type atype = (Type) ((StructuredSelection) cvActionType.getSelection()).getFirstElement();
-		if (atype == null) {
-			atype = Type.COMMON;
-		}
 		
 		String[] fields = new String[] {
-			Reminder.FLD_SUBJECT, Reminder.MESSAGE, Reminder.FLD_PRIORITY, Reminder.FLD_STATUS,
+			Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE, Reminder.FLD_PRIORITY, Reminder.FLD_STATUS,
 			Reminder.KONTAKT_ID, Reminder.FLD_VISIBILITY, Reminder.DUE, Reminder.FLD_ACTION_TYPE
 		};
 		reminder.set(fields, txtSubject.getText(), txtDescription.getText(),
 			Integer.toString(priority.numericValue()),
 			Integer.toString(processStatus.numericValue()), contactId,
 			Integer.toString(visibility.numericValue()), due,
-			Integer.toString(atype.numericValue()));
-		
-		// TODO ALL
-		reminder.getResponsibles().stream().forEachOrdered(r -> reminder.removeResponsible(r));
+			Integer.toString(actionType.numericValue()));
 		
 		StructuredSelection ss = (StructuredSelection) lvResponsible.getSelection();
 		@SuppressWarnings("unchecked")
 		List<Object> selectionList = ss.toList();
 		if (selectionList.contains(TX_ALL)) {
-			CoreHub.getUserList().stream().forEachOrdered(c -> reminder.addResponsible(c));
+			reminder.setResponsible(null);
 		} else {
-			selectionList.stream().map(e -> (Anwender) e)
-				.forEachOrdered(c -> reminder.addResponsible(c));
+			reminder.setResponsible(
+				selectionList.stream().map(e -> (Anwender) e).collect(Collectors.toList()));
 		}
 		
 		super.okPressed();

@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import ch.elexis.core.constants.StringConstants;
 import ch.elexis.core.model.issue.Visibility;
 import ch.elexis.core.ui.icons.Images;
 
@@ -88,12 +89,14 @@ public class ReminderVisibilityAndPopupComposite extends Composite {
 		cvPopup.setLabelProvider(new LabelProvider() {
 			@Override
 			public String getText(Object element){
-				Visibility vis = (Visibility) element;
-				return vis.getLocaleText();
+				if (element instanceof Visibility) {
+					return ((Visibility) element).getLocaleText();
+				}
+				return element.toString();
 			}
 		});
-		cvPopup.setInput(new Visibility[] {
-			Visibility.POPUP_ON_PATIENT_SELECTION, Visibility.POPUP_ON_LOGIN
+		cvPopup.setInput(new Object[] {
+			StringConstants.EMPTY, Visibility.POPUP_ON_PATIENT_SELECTION, Visibility.POPUP_ON_LOGIN
 		});
 	}
 	
@@ -115,7 +118,7 @@ public class ReminderVisibilityAndPopupComposite extends Composite {
 		if (patientSelectedComposite.equals(stackLayout.topControl)) {
 			if (showOnlyOnSelectedPatient.getSelection()) {
 				Object firstElement = cvPopup.getStructuredSelection().getFirstElement();
-				if (firstElement == null) {
+				if (firstElement == null || StringConstants.EMPTY.equals(firstElement)) {
 					return Visibility.ON_PATIENT_SELECTION;
 				} else {
 					return (Visibility) firstElement;
@@ -138,12 +141,13 @@ public class ReminderVisibilityAndPopupComposite extends Composite {
 		if (noPatientSelectedComposite.equals(stackLayout.topControl)) {
 			popupOnLogin.setSelection(Visibility.POPUP_ON_LOGIN == visibility);
 		} else {
+			showOnlyOnSelectedPatient.setSelection(true);
+			comboPopup.setEnabled(true);
 			if (Visibility.POPUP_ON_LOGIN == visibility
-				|| Visibility.POPUP_ON_PATIENT_SELECTION == visibility
-				|| Visibility.ON_PATIENT_SELECTION == visibility) {
-				showOnlyOnSelectedPatient.setSelection(true);
-				comboPopup.setEnabled(true);
+				|| Visibility.POPUP_ON_PATIENT_SELECTION == visibility) {
 				cvPopup.setSelection(new StructuredSelection(visibility));
+			} else {
+				cvPopup.setSelection(new StructuredSelection(StringConstants.EMPTY));
 			}
 		}
 	}

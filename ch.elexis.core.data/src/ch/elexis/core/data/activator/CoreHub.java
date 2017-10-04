@@ -76,7 +76,7 @@ public class CoreHub implements BundleActivator {
 	public static String Version = "3.3.0.qualifier"; //$NON-NLS-1$
 	public static final String APPLICATION_NAME = "Elexis Core"; //$NON-NLS-1$
 	static final String neededJRE = "1.8.0"; //$NON-NLS-1$
-	public static final String DBVersion = "3.2.7"; //$NON-NLS-1$
+	public static final String DBVersion = "3.2.8"; //$NON-NLS-1$
 	
 	protected static Logger log = LoggerFactory.getLogger(CoreHub.class.getName());
 	
@@ -272,7 +272,7 @@ public class CoreHub implements BundleActivator {
 				elexis_version = prop.getProperty("elexis.version").replace("-SNAPSHOT", "");
 			}
 		} catch (IOException e) {
-			elexis_version = plugin.Version;
+			elexis_version = CoreHub.Version;
 			// log.warn("Error reading build version information from [{}]", url_name, e);
 		}
 		return elexis_version;
