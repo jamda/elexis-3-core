@@ -92,7 +92,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 	public static final String ID = "ch.elexis.reminderview"; //$NON-NLS-1$
 	
 	private IAction newReminderAction, deleteReminderAction, showOnlyOwnDueReminderToggleAction,
-			showSelfCreatedReminderAction, toggleAutoSelectPatientAction;
+			showSelfCreatedReminderAction, toggleAutoSelectPatientAction, reloadAction;
 	private RestrictedAction showOthersRemindersAction;
 	private RestrictedAction selectPatientAction;
 	private boolean bVisible;
@@ -247,7 +247,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		toolbarActionList.add(selectPatientAction);
 		
 		ViewMenus menu = new ViewMenus(getViewSite());
-		menu.createToolbar(newReminderAction, toggleAutoSelectPatientAction);
+		menu.createToolbar(reloadAction, newReminderAction, toggleAutoSelectPatientAction);
 		menu.createMenu(toolbarActionList.toArray(new IAction[] {}));
 		
 		if (CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
@@ -444,6 +444,20 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 					}
 				}
 			}
+			
+			@Override
+			public boolean isEnabled(){
+				Object[] sel = cv.getSelection();
+				if (sel != null && sel.length == 1) {
+					Reminder reminder = (Reminder) sel[0];
+					Patient patient = reminder.getKontakt();
+					Anwender creator = reminder.getCreator();
+					if (patient != null) {
+						return !patient.getId().equals(creator.getId());
+					}
+				}
+				return false;
+			}
 		};
 		
 		toggleAutoSelectPatientAction =
@@ -463,6 +477,18 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 						autoSelectPatient);
 				}
 			};
+		
+		reloadAction = new Action(Messages.PatHeuteView_reloadAction) { //$NON-NLS-1$
+			{
+				setImageDescriptor(Images.IMG_REFRESH.getImageDescriptor());
+				setToolTipText(Messages.PatHeuteView_reloadToolTip); //$NON-NLS-1$
+			}
+			
+			@Override
+			public void run(){
+				heartbeat();
+			}
+		};
 		
 		for (int i = 0; i < Type.values().length; i++) {
 			Type type = Type.values()[i];
