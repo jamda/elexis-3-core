@@ -168,7 +168,6 @@ public class Test_Reminder extends AbstractPersistentObjectTest {
 		
 		List<Reminder> findRemindersDueFor =
 			Reminder.findRemindersDueFor(null, CoreHub.actUser, false);
-		System.out.println(findRemindersDueFor);
 		assertEquals(2, findRemindersDueFor.size());
 	}
 	

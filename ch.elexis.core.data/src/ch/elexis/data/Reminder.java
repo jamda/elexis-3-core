@@ -385,7 +385,8 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 		DBConnection dbConnection = getDefaultConnection();
 		PreparedStatement ps;
 		if (showOnlyDueReminders) {
-			ps = dbConnection.getPreparedStatement(PS_REMINDERS_RESPONSIBLE + " AND r.DateDue != '' AND r.DateDue <= ?");
+			ps = dbConnection.getPreparedStatement(
+				PS_REMINDERS_RESPONSIBLE + " AND r.DateDue != '' AND r.DateDue <= ?");
 		} else {
 			ps = dbConnection.getPreparedStatement(PS_REMINDERS_RESPONSIBLE);
 		}

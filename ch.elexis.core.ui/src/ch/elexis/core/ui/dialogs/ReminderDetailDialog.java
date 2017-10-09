@@ -120,7 +120,6 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 	 * 
 	 * @param parent
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected Control createDialogArea(Composite parent){
 		Composite area = (Composite) super.createDialogArea(parent);
