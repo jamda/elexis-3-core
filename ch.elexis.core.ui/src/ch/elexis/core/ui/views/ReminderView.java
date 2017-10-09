@@ -24,6 +24,7 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IContributionItem;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.resource.FontDescriptor;
@@ -89,6 +90,8 @@ import ch.elexis.data.Reminder;
 import ch.rgw.io.Settings;
 
 public class ReminderView extends ViewPart implements IActivationListener, HeartListener {
+	public ReminderView(){}
+	
 	public static final String ID = "ch.elexis.reminderview"; //$NON-NLS-1$
 	
 	private IAction newReminderAction, deleteReminderAction, showOnlyOwnDueReminderToggleAction,
@@ -107,9 +110,8 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 	
 	private boolean showOnlyDueReminders =
 		CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, false);
-	private boolean showOthersReminders =
-		(CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false)
-			&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS));
+	private boolean showAllReminders = (CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false)
+		&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS));
 	private boolean showSelfCreatedReminders =
 		CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false);
 	
@@ -231,24 +233,9 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		
 		makeActions();
 		
-		Action labelFilterAction = new Action("Anzeigen-Filter") {};
-		labelFilterAction.setEnabled(false);
-		
-		IAction[] list = new IAction[] {
-			newReminderAction, deleteReminderAction, null, labelFilterAction,
-			showOnlyOwnDueReminderToggleAction, showSelfCreatedReminderAction,
-			showOthersRemindersAction, null
-		};
-		
-		List<IAction> toolbarActionList = new ArrayList<IAction>();
-		toolbarActionList.addAll(Arrays.asList(list));
-		toolbarActionList.addAll(Arrays.asList(filterActionType));
-		toolbarActionList.add(null);
-		toolbarActionList.add(selectPatientAction);
-		
 		ViewMenus menu = new ViewMenus(getViewSite());
 		menu.createToolbar(reloadAction, newReminderAction, toggleAutoSelectPatientAction);
-		menu.createMenu(toolbarActionList.toArray(new IAction[] {}));
+		menu.createMenu(createActionList());
 		
 		if (CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
 			showOthersRemindersAction.setEnabled(true);
@@ -284,9 +271,10 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		
 		List<IContributionItem> popupMenuActionList = new ArrayList<>();
 		popupMenuActionList.add(new ReminderStatusSubMenu(cv));
+		popupMenuActionList.add(new ActionContributionItem(deleteReminderAction));
 		popupMenuActionList.add(new ActionContributionItem(selectPatientAction));
 		popupMenuActionList.add(new Separator());
-		popupMenuActionList.addAll(ViewMenus.convertActionsToContributionItems((list)));
+		popupMenuActionList.addAll(createActionList());
 		menu.createViewerContextMenu(cv.getViewerWidget(), popupMenuActionList);
 		cv.getViewerWidget().addFilter(filter);
 		GlobalEventDispatcher.addActivationListener(this, getViewSite().getPart());
@@ -303,6 +291,27 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				}
 			}
 		});
+	}
+	
+	private List<IContributionItem> createActionList(){
+		Action labelFilter = new Action("Anzeige filtern") {};
+		labelFilter.setEnabled(false);
+		
+		Action labelResponsibility = new Action("Anzeige erweitern") {};
+		labelResponsibility.setEnabled(false);
+		
+		MenuManager typeFilterSubMenu = new MenuManager("Nach Aktionstyp");
+		List<IContributionItem> ca =
+			ViewMenus.convertActionsToContributionItems((filterActionType));
+		for (IContributionItem iContributionItem : ca) {
+			typeFilterSubMenu.add(iContributionItem);
+		}
+		return Arrays.asList(new ActionContributionItem(newReminderAction), null,
+			new ActionContributionItem(labelFilter),
+			new ActionContributionItem(showOnlyOwnDueReminderToggleAction), typeFilterSubMenu, null,
+			new ActionContributionItem(labelResponsibility),
+			new ActionContributionItem(showSelfCreatedReminderAction),
+			new ActionContributionItem(showOthersRemindersAction), null);
 	}
 	
 	@Override
@@ -355,28 +364,34 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				cv.notify(CommonViewer.Message.update_keeplabels);
 			}
 		};
-		deleteReminderAction = new Action(Messages.ReminderView_deleteAction) { //$NON-NLS-1$
+		deleteReminderAction = new Action(Messages.ReminderView_deleteAction) {
 			{
 				setImageDescriptor(Images.IMG_DELETE.getImageDescriptor());
-				setToolTipText(Messages.ReminderView_deleteToolTip); //$NON-NLS-1$
+				setToolTipText(Messages.ReminderView_deleteToolTip);
 			}
 			
 			@Override
 			public void run(){
 				Object[] selections = cv.getSelection();
-				if ((selections != null) && (selections.length > 0)) {
-					for (Object sel : selections) {
-						Reminder r = (Reminder) sel;
-						LockResponse lockResponse = CoreHub.getLocalLockService().acquireLock(r);
-						if (lockResponse.isOk()) {
-							r.delete();
-							CoreHub.getLocalLockService().releaseLock(r);
-						} else {
-							LockResponseHelper.showInfo(lockResponse, r, null);
-						}
+				if (selections != null && selections.length == 1
+					&& selections[0] instanceof Reminder) {
+					Reminder r = (Reminder) selections[0];
+					LockResponse lockResponse = CoreHub.getLocalLockService().acquireLock(r);
+					if (lockResponse.isOk()) {
+						r.delete();
+						CoreHub.getLocalLockService().releaseLock(r);
+					} else {
+						LockResponseHelper.showInfo(lockResponse, r, null);
 					}
+					
 					cv.notify(CommonViewer.Message.update_keeplabels);
 				}
+			}
+			
+			@Override
+			public boolean isEnabled(){
+				Object[] sel = cv.getSelection();
+				return (sel != null && sel.length == 1 && sel[0] instanceof Reminder);
 			}
 		};
 		showOnlyOwnDueReminderToggleAction =
@@ -415,8 +430,8 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				
 				@Override
 				public void doRun(){
-					showOthersReminders = showOthersRemindersAction.isChecked();
-					CoreHub.userCfg.set(Preferences.USR_REMINDEROTHERS, showOthersReminders);
+					showAllReminders = showOthersRemindersAction.isChecked();
+					CoreHub.userCfg.set(Preferences.USR_REMINDEROTHERS, showAllReminders);
 					cv.notify(CommonViewer.Message.update_keeplabels);
 				}
 			};
@@ -448,13 +463,9 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			@Override
 			public boolean isEnabled(){
 				Object[] sel = cv.getSelection();
-				if (sel != null && sel.length == 1) {
+				if (sel != null && sel.length == 1 && sel[0] instanceof Reminder) {
 					Reminder reminder = (Reminder) sel[0];
-					Patient patient = reminder.getKontakt();
-					Anwender creator = reminder.getCreator();
-					if (patient != null) {
-						return !patient.getId().equals(creator.getId());
-					}
+					return reminder.isPatientRelated();
 				}
 				return false;
 			}
@@ -554,7 +565,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 					return null;
 				}
 			}
-			return null;
+			return UiDesk.getColor(UiDesk.COL_BLACK);
 		}
 		
 		public void updateUserConfiguration(){
@@ -567,44 +578,55 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		}
 		
 		public Color getForeground(final Object element){
-			Reminder reminder = (Reminder) element;
-			Priority prio = reminder.getPriority();
-			if (Priority.LOW == prio) {
-				return UiDesk.getColor(UiDesk.COL_GREY);
+			if (element instanceof Reminder) {
+				Reminder reminder = (Reminder) element;
+				Priority prio = reminder.getPriority();
+				if (Priority.LOW == prio) {
+					return UiDesk.getColor(UiDesk.COL_GREY);
+				}
+				return null;
+			}
+			
+			return UiDesk.getColor(UiDesk.COL_WHITE);
+		}
+		
+		@Override
+		public Image getColumnImage(Object element, int columnIndex){
+			if (element instanceof Reminder) {
+				Reminder reminder = (Reminder) element;
+				Type actionType = reminder.getActionType();
+				return determineActionTypeImage(actionType).getImage();
 			}
 			return null;
 		}
 		
 		@Override
-		public Image getColumnImage(Object element, int columnIndex){
-			Reminder reminder = (Reminder) element;
-			Type actionType = reminder.getActionType();
-			return determineActionTypeImage(actionType).getImage();
-		}
-		
-		@Override
 		public String getColumnText(Object element, int column){
-			Reminder reminder = (Reminder) element;
-			ProcessStatus status = reminder.getStatus();
-			if (ProcessStatus.CLOSED == status || ProcessStatus.ON_HOLD == status) {
-				return "[" + status.getLocaleText() + "] " + super.getText(element);
+			if (element instanceof Reminder) {
+				Reminder reminder = (Reminder) element;
+				ProcessStatus status = reminder.getStatus();
+				if (ProcessStatus.CLOSED == status || ProcessStatus.ON_HOLD == status) {
+					return "[" + status.getLocaleText() + "] " + super.getText(element);
+				}
 			}
 			return super.getText(element);
 		}
 		
 		@Override
 		public Font getFont(Object element){
-			Reminder reminder = (Reminder) element;
-			if (boldFont == null) {
-				Display disp = Display.getCurrent();
-				Font defaultFont = cv.getViewerWidget().getControl().getFont();
-				FontDescriptor boldDescriptor =
-					FontDescriptor.createFrom(defaultFont).setStyle(SWT.BOLD);
-				boldFont = boldDescriptor.createFont(disp);
-			}
-			Priority prio = reminder.getPriority();
-			if (Priority.HIGH == prio) {
-				return boldFont;
+			if (element instanceof Reminder) {
+				Reminder reminder = (Reminder) element;
+				if (boldFont == null) {
+					Display disp = Display.getCurrent();
+					Font defaultFont = cv.getViewerWidget().getControl().getFont();
+					FontDescriptor boldDescriptor =
+						FontDescriptor.createFrom(defaultFont).setStyle(SWT.BOLD);
+					boldFont = boldDescriptor.createFont(disp);
+				}
+				Priority prio = reminder.getPriority();
+				if (Priority.HIGH == prio) {
+					return boldFont;
+				}
 			}
 			return null;
 		}
@@ -627,22 +649,17 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 					}
 				}
 				Patient act = ElexisEventDispatcher.getSelectedPatient();
-				String[] vals = null;
-				if (act != null) {
-					vals = check.get(true, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE,
-						Reminder.KONTAKT_ID, Reminder.FLD_VISIBILITY);
-					if (!vals[2].equals(act.getId())) {
-						if (Visibility.byNumericSafe(vals[3]) != Visibility.ALWAYS) {
-							return false;
-						}
+				String patientId = (act != null) ? act.getId() : "INVALID_ID";
+				String[] vals = check.get(true, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE,
+					Reminder.FLD_KONTAKT_ID, Reminder.FLD_VISIBILITY);
+				if (!vals[2].equals(patientId)) {
+					if (Visibility.byNumericSafe(vals[3]) != Visibility.ALWAYS) {
+						// other (non-selected patient) and not marked always visible
+						return false;
 					}
 				}
 				
 				if (filterText != null && filterText.length() > 0) {
-					if (vals == null) {
-						vals = check.get(true, Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE);
-					}
-					
 					if (!StringUtils.containsIgnoreCase(vals[0], filterText)
 						&& !StringUtils.containsIgnoreCase(vals[1], filterText)) {
 						return false;
@@ -667,7 +684,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			
 			SortedSet<Reminder> reminders = new TreeSet<Reminder>();
 			
-			if (showOthersReminders
+			if (showAllReminders
 				&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS)) {
 				qbe.clear();
 				reminders.addAll(qbe.execute());
@@ -678,8 +695,6 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				if (showSelfCreatedReminders) {
 					qbe.clear();
 					qbe.add(Reminder.FLD_CREATOR, Query.EQUALS, CoreHub.actUser.getId());
-					qbe.or();
-					qbe.add(Reminder.FLD_RESPONSIBLE, Query.EQUALS, CoreHub.actUser.getId());
 					
 					reminders.addAll(qbe.execute());
 				}
@@ -687,10 +702,38 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			
 			if (filterActionSet.size() > 0) {
 				reminders
-					.removeIf(p -> (filterActionSet.contains(p.getActionType().numericValue())));
+					.removeIf(p -> !(filterActionSet.contains(p.getActionType().numericValue())));
 			}
 			
-			return reminders.toArray();
+			// split into sublists
+			List<Object> patientRelatedReminders = new ArrayList<>();
+			List<Object> patientRelatedRemindersCurrentPatient = new ArrayList<>();
+			List<Object> otherReminders = new ArrayList<>();
+			
+			Patient currentPatient = ElexisEventDispatcher.getSelectedPatient();
+			for (Reminder reminder : reminders) {
+				if (reminder.isPatientRelated()) {
+					if (currentPatient != null
+						&& reminder.get(Reminder.FLD_KONTAKT_ID).equals(currentPatient.getId())) {
+						patientRelatedRemindersCurrentPatient.add(reminder);
+					} else {
+						patientRelatedReminders.add(reminder);
+					}
+				} else {
+					otherReminders.add(reminder);
+				}
+			}
+			
+			List<Object> resultList = new ArrayList<>();
+			resultList.add("------------ Aktueller Patient");
+			resultList.addAll(patientRelatedRemindersCurrentPatient);
+			resultList.add("------------ Allgemein");
+			resultList.addAll(otherReminders);
+			resultList
+				.add("------------ Patientenbezogen (nicht aktueller Patient, immer anzeigen)");
+			resultList.addAll(patientRelatedReminders);
+			
+			return resultList.toArray();
 		}
 	}
 }

@@ -480,7 +480,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		
 		String[] fields = new String[] {
 			Reminder.FLD_SUBJECT, Reminder.FLD_MESSAGE, Reminder.FLD_PRIORITY, Reminder.FLD_STATUS,
-			Reminder.KONTAKT_ID, Reminder.FLD_VISIBILITY, Reminder.FLD_DUE, Reminder.FLD_ACTION_TYPE
+			Reminder.FLD_KONTAKT_ID, Reminder.FLD_VISIBILITY, Reminder.FLD_DUE, Reminder.FLD_ACTION_TYPE
 		};
 		reminder.set(fields, txtSubject.getText(), txtDescription.getText(),
 			Integer.toString(priority.numericValue()),

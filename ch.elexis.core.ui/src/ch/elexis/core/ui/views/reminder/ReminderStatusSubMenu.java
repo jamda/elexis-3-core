@@ -31,11 +31,13 @@ public class ReminderStatusSubMenu extends MenuManager {
 		public void menuAboutToShow(IMenuManager manager){
 			Object[] selection = cv.getSelection();
 			if (selection != null && selection.length == 1) {
-				Reminder reminder = (Reminder) selection[0];
-				manager.add(new StatusAction(ProcessStatus.OPEN, reminder));
-				manager.add(new StatusAction(ProcessStatus.IN_PROGRESS, reminder));
-				manager.add(new StatusAction(ProcessStatus.CLOSED, reminder));
-				manager.add(new StatusAction(ProcessStatus.ON_HOLD, reminder));
+				if(selection[0] instanceof Reminder) {
+					Reminder reminder = (Reminder) selection[0];
+					manager.add(new StatusAction(ProcessStatus.OPEN, reminder));
+					manager.add(new StatusAction(ProcessStatus.IN_PROGRESS, reminder));
+					manager.add(new StatusAction(ProcessStatus.CLOSED, reminder));
+					manager.add(new StatusAction(ProcessStatus.ON_HOLD, reminder));
+				}
 			} else {
 				manager.add(new Action("Multiple selection") {
 					@Override

@@ -59,7 +59,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	public static final String FLD_STATUS = "Status";
 	public static final String FLD_DUE = "Due";
 	public static final String FLD_CREATOR = "Creator";
-	public static final String KONTAKT_ID = "IdentID";
+	public static final String FLD_KONTAKT_ID = "IdentID";
 	public static final String FLD_RESPONSIBLE = "Responsible";
 	public static final String FLD_PRIORITY = "priority";
 	public static final String FLD_ACTION_TYPE = "actionType";
@@ -107,7 +107,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	}
 	
 	static {
-		addMapping(TABLENAME, KONTAKT_ID, FLD_CREATOR + "=OriginID", FLD_DUE + "=S:D:DateDue",
+		addMapping(TABLENAME, FLD_KONTAKT_ID, FLD_CREATOR + "=OriginID", FLD_DUE + "=S:D:DateDue",
 			FLD_STATUS, FLD_VISIBILITY, FLD_PARAMS, FLD_MESSAGE, FLD_RESPONSIBLE,
 			FLD_JOINT_RESPONSIBLES + "=JOINT:ResponsibleID:ReminderID:REMINDERS_RESPONSIBLE_LINK",
 			FLD_PRIORITY, FLD_ACTION_TYPE, FLD_SUBJECT);
@@ -144,7 +144,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 			ident = CoreHub.actUser;
 		}
 		set(new String[] {
-			KONTAKT_ID, FLD_CREATOR, FLD_DUE, FLD_STATUS, FLD_VISIBILITY, FLD_PARAMS, FLD_MESSAGE
+			FLD_KONTAKT_ID, FLD_CREATOR, FLD_DUE, FLD_STATUS, FLD_VISIBILITY, FLD_PARAMS, FLD_MESSAGE
 		}, new String[] {
 			ident.getId(), CoreHub.actUser.getId(), due,
 			Byte.toString((byte) Visibility.ALWAYS.numericValue()),
@@ -175,7 +175,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	
 	@Override
 	public String getLabel(){
-		String[] vals = get(true, KONTAKT_ID, FLD_DUE, FLD_MESSAGE, FLD_SUBJECT, FLD_CREATOR);
+		String[] vals = get(true, FLD_KONTAKT_ID, FLD_DUE, FLD_MESSAGE, FLD_SUBJECT, FLD_CREATOR);
 		Kontakt k = Kontakt.load(vals[0]);
 		boolean isPatientRelatedReminder = isPatientRelatedReminder(vals[4], vals[0]);
 		
@@ -365,10 +365,11 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	 * @since 3.4
 	 */
 	public boolean isPatientRelated(){
-		return isPatientRelatedReminder(getCreator().getId(), getKontakt().getId());
+		String vals[] = get(true, Reminder.FLD_KONTAKT_ID, Reminder.FLD_CREATOR);
+		return isPatientRelatedReminder(vals[0],vals[1]);
 	}
 	
-	private boolean isPatientRelatedReminder(String creatorId, String contactId){
+	private  boolean isPatientRelatedReminder(String creatorId, String contactId){
 		return !Objects.equals(creatorId, contactId);
 	}
 	
@@ -440,7 +441,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	 */
 	public static List<Reminder> findForPatient(final Patient p, final Kontakt responsible){
 		Query<Reminder> qbe = new Query<Reminder>(Reminder.class);
-		qbe.add(KONTAKT_ID, Query.EQUALS, p.getId());
+		qbe.add(FLD_KONTAKT_ID, Query.EQUALS, p.getId());
 		qbe.add(FLD_STATUS, Query.NOT_EQUAL, Integer.toString(ProcessStatus.CLOSED.numericValue()));
 		qbe.add(FLD_DUE, Query.LESS_OR_EQUAL, new TimeTool().toString(TimeTool.DATE_COMPACT));
 		if (responsible != null) {
@@ -553,7 +554,7 @@ public class Reminder extends PersistentObject implements Comparable<Reminder> {
 	}
 	
 	public Patient getKontakt(){
-		Patient ret = Patient.load(get(KONTAKT_ID));
+		Patient ret = Patient.load(get(FLD_KONTAKT_ID));
 		if (ret.exists()) {
 			return ret;
 		}

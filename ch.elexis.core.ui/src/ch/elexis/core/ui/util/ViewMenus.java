@@ -85,7 +85,11 @@ public class ViewMenus {
 			}
 		});
 		for (IContributionItem item : contributionItems) {
-			mgr.add(item);
+			if (item == null) {
+				mgr.add(new Separator());
+			} else {
+				mgr.add(item);
+			}
 		}
 	}
 	
@@ -209,12 +213,16 @@ public class ViewMenus {
 	private void fillContextMenu(IMenuManager manager, List<IContributionItem> contributionItems){
 		manager.add(new GroupMarker(IWorkbenchActionConstants.MB_ADDITIONS));
 		for (IContributionItem contributionItem : contributionItems) {
-			if (contributionItem instanceof ActionContributionItem) {
+			if (contributionItem == null) {
+				manager.add(new Separator());
+				continue;
+			} else if (contributionItem instanceof ActionContributionItem) {
 				ActionContributionItem ac = (ActionContributionItem) contributionItem;
 				if (ac.getAction() instanceof RestrictedAction) {
 					((RestrictedAction) ac.getAction()).reflectRight();
 				}
 			}
+			contributionItem.update();
 			manager.add(contributionItem);
 		}
 	}
