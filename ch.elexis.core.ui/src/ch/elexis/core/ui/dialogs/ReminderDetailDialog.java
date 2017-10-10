@@ -475,7 +475,7 @@ public class ReminderDetailDialog extends TitleAreaDialog {
 		}
 		
 		String contactId =
-			(btnNotPatientRelated.getSelection()) ? CoreHub.actUser.getId() : patient.getId();
+			(btnNotPatientRelated.getSelection()) ? reminder.getCreator().getId() : patient.getId();
 		Visibility visibility = rvapc.getConfiguredVisibility();
 		
 		String[] fields = new String[] {
