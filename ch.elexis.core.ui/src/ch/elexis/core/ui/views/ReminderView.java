@@ -99,7 +99,6 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 	private RestrictedAction showOthersRemindersAction;
 	private RestrictedAction selectPatientAction;
 	private boolean bVisible;
-	private boolean autoSelectPatient;
 	
 	private ReminderLabelProvider reminderLabelProvider = new ReminderLabelProvider();
 	
@@ -108,6 +107,8 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 	
 	private long cvHighestLastUpdate = 0l;
 	
+	private boolean autoSelectPatient =
+		CoreHub.userCfg.get(Preferences.USR_REMINDER_AUTO_SELECT_PATIENT, false);
 	private boolean showOnlyDueReminders =
 		CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, false);
 	private boolean showAllReminders = (CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false)
@@ -155,19 +156,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		new ElexisUiEventListenerImpl(Anwender.class, ElexisEvent.EVENT_USER_CHANGED) {
 			
 			public void runInUi(ElexisEvent ev){
-				boolean bChecked = CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, true);
-				showOnlyOwnDueReminderToggleAction.setChecked(bChecked);
-				showSelfCreatedReminderAction
-					.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false));
-				
-				// get state from user's configuration
-				showOthersRemindersAction
-					.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false));
-				
-				// update action's access rights
-				showOthersRemindersAction.reflectRight();
-				
-				reminderLabelProvider.updateUserConfiguration();
+				refreshUserConfiguration();
 				
 				if (bVisible) {
 					cv.notify(CommonViewer.Message.update);
@@ -175,6 +164,24 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				
 			}
 		};
+	
+	private void refreshUserConfiguration(){
+		boolean bChecked = CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, true);
+		showOnlyOwnDueReminderToggleAction.setChecked(bChecked);
+		showSelfCreatedReminderAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false));
+		toggleAutoSelectPatientAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDER_AUTO_SELECT_PATIENT, false));
+		
+		// get state from user's configuration
+		showOthersRemindersAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false));
+		
+		// update action's access rights
+		showOthersRemindersAction.reflectRight();
+		
+		reminderLabelProvider.updateUserConfiguration();
+	}
 	
 	private ElexisEventListener eeli_reminder = new ElexisUiEventListenerImpl(Reminder.class,
 		ElexisEvent.EVENT_RELOAD | ElexisEvent.EVENT_CREATE | ElexisEvent.EVENT_UPDATE) {
@@ -476,8 +483,6 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				{
 					setImageDescriptor(Images.IMG_PERSON.getImageDescriptor());
 					setToolTipText(Messages.ReminderView_toggleSelectPatientActionTooltip);
-					autoSelectPatient =
-						CoreHub.userCfg.get(Preferences.USR_REMINDER_AUTO_SELECT_PATIENT, false);
 					setChecked(autoSelectPatient);
 				}
 				
@@ -530,6 +535,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			ElexisEventDispatcher.getInstance().addListeners(eeli_pat, eeli_user, eeli_reminder);
 			CoreHub.heart.addListener(this);
 			heartbeat();
+			refreshUserConfiguration();
 		} else {
 			ElexisEventDispatcher.getInstance().removeListeners(eeli_pat, eeli_user, eeli_reminder);
 			CoreHub.heart.removeListener(this);
