@@ -148,8 +148,11 @@ public class ReminderVisibilityAndPopupComposite extends Composite {
 				cvPopup.setSelection(new StructuredSelection(visibility));
 			} else {
 				cvPopup.setSelection(new StructuredSelection(StringConstants.EMPTY));
+				
 			}
+			showOnlyOnSelectedPatient.setSelection(!(Visibility.ALWAYS == visibility));
 		}
+		
 	}
 	
 }
