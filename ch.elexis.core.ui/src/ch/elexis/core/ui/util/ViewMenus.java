@@ -66,31 +66,16 @@ public class ViewMenus {
 	 * @param contributionItems
 	 * @since 3.4
 	 */
-	public void createMenu(List<IContributionItem> contributionItems){
-		IMenuManager mgr = site.getActionBars().getMenuManager();
-		mgr.addMenuListener(new IMenuListener() {
+	public void createMenu(final List<IContributionItem> contributionItems){
+		IMenuManager menuMgr = site.getActionBars().getMenuManager();
+		menuMgr.setRemoveAllWhenShown(true);
+		menuMgr.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager){
-				// update the UI
-				IContributionItem[] items = manager.getItems();
-				for (IContributionItem iContributionItem : items) {
-					if (iContributionItem instanceof ActionContributionItem) {
-						ActionContributionItem ac = (ActionContributionItem) iContributionItem;
-						if (ac.getAction() instanceof RestrictedAction) {
-							((RestrictedAction) ac.getAction()).reflectRight();
-						}
-					}
-					iContributionItem.update();
-				}
+				fillContextMenu(menuMgr, contributionItems);
 			}
 		});
-		for (IContributionItem item : contributionItems) {
-			if (item == null) {
-				mgr.add(new Separator());
-			} else {
-				mgr.add(item);
-			}
-		}
+		menuMgr.add(new Separator()); // for the entry to appear
 	}
 	
 	/**

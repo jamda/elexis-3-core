@@ -90,8 +90,7 @@ import ch.elexis.data.Reminder;
 import ch.rgw.io.Settings;
 
 public class ReminderView extends ViewPart implements IActivationListener, HeartListener {
-	public ReminderView(){}
-	
+
 	public static final String ID = "ch.elexis.reminderview"; //$NON-NLS-1$
 	
 	private IAction newReminderAction, deleteReminderAction, showOnlyOwnDueReminderToggleAction,
@@ -115,6 +114,20 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS));
 	private boolean showSelfCreatedReminders =
 		CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false);
+		
+	private CommonViewer cv = new CommonViewer();
+	private ViewerConfigurer vc;
+	private Query<Reminder> qbe = new Query<Reminder>(Reminder.class);
+	private ReminderFilter filter = new ReminderFilter();
+	private Patient actPatient;
+	private Text txtSearch;
+	
+	private ElexisEventListener eeli_reminder = new ElexisUiEventListenerImpl(Reminder.class,
+		ElexisEvent.EVENT_RELOAD | ElexisEvent.EVENT_CREATE | ElexisEvent.EVENT_UPDATE) {
+		public void catchElexisEvent(ElexisEvent ev){
+			cv.notify(CommonViewer.Message.update);
+		}
+	};
 	
 	// 1079 - nur wenn der View offen ist werden bei Patienten-Wechsel die Reminders abgefragt!
 	private ElexisEventListener eeli_pat = new ElexisUiEventListenerImpl(Patient.class) {
@@ -164,38 +177,6 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 				
 			}
 		};
-	
-	private void refreshUserConfiguration(){
-		boolean bChecked = CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, true);
-		showOnlyOwnDueReminderToggleAction.setChecked(bChecked);
-		showSelfCreatedReminderAction
-			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false));
-		toggleAutoSelectPatientAction
-			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDER_AUTO_SELECT_PATIENT, false));
-		
-		// get state from user's configuration
-		showOthersRemindersAction
-			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false));
-		
-		// update action's access rights
-		showOthersRemindersAction.reflectRight();
-		
-		reminderLabelProvider.updateUserConfiguration();
-	}
-	
-	private ElexisEventListener eeli_reminder = new ElexisUiEventListenerImpl(Reminder.class,
-		ElexisEvent.EVENT_RELOAD | ElexisEvent.EVENT_CREATE | ElexisEvent.EVENT_UPDATE) {
-		public void catchElexisEvent(ElexisEvent ev){
-			cv.notify(CommonViewer.Message.update);
-		}
-	};
-	
-	private CommonViewer cv = new CommonViewer();
-	private ViewerConfigurer vc;
-	private Query<Reminder> qbe = new Query<Reminder>(Reminder.class);
-	private ReminderFilter filter = new ReminderFilter();
-	private Patient actPatient;
-	private Text txtSearch;
 	
 	@Override
 	public void createPartControl(final Composite parent){
@@ -321,6 +302,24 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 			new ActionContributionItem(showOthersRemindersAction), null);
 	}
 	
+	private void refreshUserConfiguration(){
+		boolean bChecked = CoreHub.userCfg.get(Preferences.USR_REMINDERSOPEN, true);
+		showOnlyOwnDueReminderToggleAction.setChecked(bChecked);
+		showSelfCreatedReminderAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false));
+		toggleAutoSelectPatientAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDER_AUTO_SELECT_PATIENT, false));
+		
+		// get state from user's configuration
+		showOthersRemindersAction
+			.setChecked(CoreHub.userCfg.get(Preferences.USR_REMINDEROTHERS, false));
+		
+		// update action's access rights
+		showOthersRemindersAction.reflectRight();
+		
+		reminderLabelProvider.updateUserConfiguration();
+	}
+
 	@Override
 	public void setFocus(){}
 	
