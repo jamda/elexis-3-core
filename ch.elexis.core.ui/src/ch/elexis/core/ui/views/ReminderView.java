@@ -90,7 +90,7 @@ import ch.elexis.data.Reminder;
 import ch.rgw.io.Settings;
 
 public class ReminderView extends ViewPart implements IActivationListener, HeartListener {
-
+	
 	public static final String ID = "ch.elexis.reminderview"; //$NON-NLS-1$
 	
 	private IAction newReminderAction, deleteReminderAction, showOnlyOwnDueReminderToggleAction,
@@ -114,7 +114,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		&& CoreHub.acl.request(AccessControlDefaults.ADMIN_VIEW_ALL_REMINDERS));
 	private boolean showSelfCreatedReminders =
 		CoreHub.userCfg.get(Preferences.USR_REMINDEROWN, false);
-		
+	
 	private CommonViewer cv = new CommonViewer();
 	private ViewerConfigurer vc;
 	private Query<Reminder> qbe = new Query<Reminder>(Reminder.class);
@@ -319,7 +319,7 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		
 		reminderLabelProvider.updateUserConfiguration();
 	}
-
+	
 	@Override
 	public void setFocus(){}
 	
@@ -559,14 +559,17 @@ public class ReminderView extends ViewPart implements IActivationListener, Heart
 		
 		public Color getBackground(final Object element){
 			if (element instanceof Reminder) {
-				ProcessStatus stat = ((Reminder) element).getStatus();
-				if (stat == ProcessStatus.DUE) {
+				Reminder reminder = (Reminder) element;
+				switch (reminder.getDueState()) {
+				case 1:
 					return colorDue;
-				} else if (stat == ProcessStatus.OVERDUE) {
+				case 2:
 					return colorOverdue;
-				} else if (stat == ProcessStatus.OPEN) {
-					return colorOpen;
-				} else {
+				default:
+					ProcessStatus processStatus = reminder.getProcessStatus();
+					if (ProcessStatus.OPEN == processStatus) {
+						return colorOpen;
+					}
 					return null;
 				}
 			}
