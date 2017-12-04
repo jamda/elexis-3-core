@@ -22,13 +22,14 @@ import java.util.List;
 import ch.elexis.admin.AccessControlDefaults;
 import ch.elexis.core.constants.Preferences;
 import ch.elexis.core.data.activator.CoreHub;
+import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
-import ch.elexis.core.data.interfaces.IDiagnose;
 import ch.elexis.core.data.interfaces.IOptifier;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
 import ch.elexis.core.data.interfaces.events.MessageEvent;
 import ch.elexis.core.data.status.ElexisStatus;
 import ch.elexis.core.exceptions.PersistenceException;
+import ch.elexis.core.model.IDiagnose;
 import ch.elexis.core.model.prescription.EntryType;
 import ch.elexis.core.text.model.Samdas;
 import ch.rgw.tools.ExHandler;
@@ -201,6 +202,10 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 	 *            text to insert
 	 */
 	public void addXRef(String provider, String id, int pos, String text){
+		// fire prerelease triggers save
+		ElexisEventDispatcher.getInstance().fire(new ElexisEvent(this, Konsultation.class,
+			ElexisEvent.EVENT_LOCK_PRERELEASE, ElexisEvent.PRIORITY_SYNC));
+		
 		VersionedResource vr = getEintrag();
 		String ntext = vr.getHead();
 		Samdas samdas = new Samdas(ntext);
@@ -208,14 +213,18 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 		String recText = record.getText();
 		if ((pos == -1) || pos > recText.length()) {
 			pos = recText.length();
-			recText += text;
+			recText += "\n" + text;
 		} else {
-			recText = recText.substring(0, pos) + text + recText.substring(pos);
+			recText = recText.substring(0, pos) + "\n" + text + recText.substring(pos);
 		}
 		record.setText(recText);
-		Samdas.XRef xref = new Samdas.XRef(provider, id, pos, text.length());
+		// ++pos because \n has been added
+		Samdas.XRef xref = new Samdas.XRef(provider, id, ++pos, text.length());
 		record.add(xref);
 		updateEintrag(samdas.toString(), true); // XRefs may always be added
+		// update with the added content
+		ElexisEventDispatcher.getInstance().fire(new ElexisEvent(this, Konsultation.class,
+			ElexisEvent.EVENT_UPDATE, ElexisEvent.PRIORITY_NORMAL));
 	}
 	
 	private Samdas getEntryRaw(){
@@ -672,6 +681,15 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 	public List<Verrechnet> getLeistungen(){
 		Query<Verrechnet> qbe = new Query<Verrechnet>(Verrechnet.class);
 		qbe.add(Verrechnet.KONSULTATION, Query.EQUALS, getId());
+		qbe.orderBy(false, Verrechnet.CLASS, Verrechnet.LEISTG_CODE);
+		return qbe.execute();
+	}
+	
+	/** Die zu dieser Konsultation gehörenden Leistungen holen */
+	public List<Verrechnet> getLeistungen(String[] prefetch){
+		Query<Verrechnet> qbe =
+			new Query<Verrechnet>(Verrechnet.class, Verrechnet.KONSULTATION, getId(),
+				Verrechnet.TABLENAME, prefetch);
 		qbe.orderBy(false, Verrechnet.CLASS, Verrechnet.LEISTG_CODE);
 		return qbe.execute();
 	}

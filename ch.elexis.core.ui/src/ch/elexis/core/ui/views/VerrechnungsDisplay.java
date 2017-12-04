@@ -25,6 +25,7 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.InputDialog;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
@@ -54,9 +55,10 @@ import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
 import ch.elexis.core.data.events.ElexisEventListener;
-import ch.elexis.core.data.interfaces.IDiagnose;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
 import ch.elexis.core.data.status.ElexisStatus;
+import ch.elexis.core.model.ICodeElement;
+import ch.elexis.core.model.IDiagnose;
 import ch.elexis.core.model.prescription.EntryType;
 import ch.elexis.core.ui.Hub;
 import ch.elexis.core.ui.UiDesk;
@@ -87,8 +89,10 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	private IWorkbenchPage page;
 	private final Hyperlink hVer;
 	private final PersistentObjectDropTarget dropTarget;
-	private IAction applyMedicationAction, chPriceAction, chCountAction, chTextAction, removeAction,
+	private IAction applyMedicationAction, chPriceAction, chCountAction,
+			chTextAction, removeAction,
 			removeAllAction;
+	private static final String INDICATED_MEDICATION = Messages.VerrechnungsDisplay_indicatedMedication;
 	private static final String APPLY_MEDICATION = Messages.VerrechnungsDisplay_applyMedication;
 	private static final String CHPRICE = Messages.VerrechnungsDisplay_changePrice;
 	private static final String CHCOUNT = Messages.VerrechnungsDisplay_changeNumber;
@@ -147,13 +151,6 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 				TableItem[] selection = tVerr.getSelection();
 				Verrechnet verrechnet = (Verrechnet) selection[0].getData();
 				ElexisEventDispatcher.fireSelectionEvent(verrechnet);
-				
-				applyMedicationAction.setEnabled(false);
-				
-				IVerrechenbar verrechenbar = verrechnet.getVerrechenbar();
-				if (verrechenbar != null && (verrechenbar instanceof Artikel)) {
-					applyMedicationAction.setEnabled(true);
-				}
 			}
 		});
 		tVerr.addKeyListener(new KeyListener() {
@@ -194,6 +191,28 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	public void addPersistentObject(PersistentObject o){
 		Konsultation actKons = (Konsultation) ElexisEventDispatcher.getSelected(Konsultation.class);
 		if (actKons != null) {
+			if (o instanceof Leistungsblock) {
+				Leistungsblock block = (Leistungsblock) o;
+				List<ICodeElement> elements = block.getElements();
+				for (ICodeElement element : elements) {
+					if (element instanceof PersistentObject) {
+						addPersistentObject((PersistentObject) element);
+					}
+				}
+				List<ICodeElement> diff = block.getDiffToReferences(elements);
+				if (!diff.isEmpty()) {
+					StringBuilder sb = new StringBuilder();
+					diff.forEach(r -> {
+						if (sb.length() > 0) {
+							sb.append("\n");
+						}
+						sb.append(r);
+					});
+					MessageDialog.openWarning(getShell(), "Warnung",
+						"Warnung folgende Leistungen konnten im aktuellen Kontext (Fall, Konsultation, Gesetz) nicht verrechnet werden.\n"
+							+ sb.toString());
+				}
+			}
 			if (o instanceof Prescription) {
 				Prescription presc = (Prescription) o;
 				o = presc.getArtikel();
@@ -305,7 +324,8 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 					if (sel != -1) {
 						TableItem ti = tVerr.getItem(sel);
 						Verrechnet v = (Verrechnet) ti.getData();
-						manager.add(applyMedicationAction);
+						IVerrechenbar verrechenbar = v.getVerrechenbar();
+						
 						manager.add(chPriceAction);
 						manager.add(chCountAction);
 						IVerrechenbar vbar = v.getVerrechenbar();
@@ -323,6 +343,41 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 						manager.add(removeAction);
 						manager.add(new Separator());
 						manager.add(removeAllAction);
+						if (verrechenbar instanceof Artikel) {
+							manager.add(new Separator());
+							manager.add(applyMedicationAction);
+							// #8796
+							manager.add(new Action(INDICATED_MEDICATION, Action.AS_CHECK_BOX) {
+								@Override
+								public void run(){
+									Verrechnet v = loadSelectedVerrechnet();
+									AcquireLockUi.aquireAndRun(v,
+										new LockDeniedNoActionLockHandler() {
+											
+											@Override
+											public void lockAcquired(){
+												if (isIndicated()) {
+													v.setDetail(Verrechnet.INDICATED, "false");
+												} else {
+													v.setDetail(Verrechnet.INDICATED, "true");
+												}
+											}
+										});
+									
+								}
+								
+								private boolean isIndicated(){
+									Verrechnet v = loadSelectedVerrechnet();
+									String value = v.getDetail(Verrechnet.INDICATED);
+									return "true".equalsIgnoreCase(value);
+								}
+								
+								@Override
+								public boolean isChecked(){
+									return isIndicated();
+								}
+							});
+						}
 					}
 				}
 			}

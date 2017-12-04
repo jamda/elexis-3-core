@@ -67,6 +67,8 @@ public enum Images {
 		IMG_MAIL_SEND,
 		/** a web icon */
 		IMG_WEB,
+		/** new comment */
+		IMG_COMMENT_ADD,
 		/** a contact detail icon */
 		IMG_CONTACT_DETAIL,
 		/** deleting items */
@@ -202,6 +204,12 @@ public enum Images {
 		IMG_PERSPECTIVE_ORDERS,
 		/** a document of type text */
 		IMG_DOCUMENT_TEXT,
+		/** a multi document with clip */
+		IMG_DOCUMENT_STAND_UP,
+		/** a multi document of type text */
+		IMG_DOCUMENT_STACK,
+		/** a default document */
+		IMG_DOCUMENT,
 		/** add document */
 		IMG_DOCUMENT_ADD,
 		/** write document */
@@ -260,7 +268,10 @@ public enum Images {
 		IMG_WIZ_DAY, IMG_CALENDAR,
 		IMG_COUNTER_STOP,
 		IMG_USER_IDLE, 
-		IMG_SYSTEM_MONITOR;
+		IMG_SYSTEM_MONITOR,
+		IMG_BELL_EXCLAMATION,
+		IMG_SORT_DATE,
+		IMG_SORT_DATE_DESCENDING;
 		
 	private Images(){}
 	

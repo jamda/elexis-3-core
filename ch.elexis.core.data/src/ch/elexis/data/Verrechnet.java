@@ -63,6 +63,7 @@ public class Verrechnet extends PersistentObject {
 	public static final String USERID = "userID";
 	public static final String TABLENAME = "LEISTUNGEN";
 	
+	public static final String INDICATED = Constants.FLD_EXT_INDICATED;
 	public static final String VATSCALE = Constants.VAT_SCALE;
 	public static final String FLD_EXT_PRESC_ID = Constants.FLD_EXT_PRESC_ID;
 	
@@ -95,7 +96,7 @@ public class Verrechnet extends PersistentObject {
 	public Verrechnet(final IVerrechenbar iv, final Konsultation kons, final int zahl){
 		TimeTool dat = new TimeTool(kons.getDatum());
 		Fall fall = kons.getFall();
-		int tp = iv.getTP(dat, fall);
+		int tp = iv.getTP(dat, kons);
 		double factor = iv.getFactor(dat, fall);
 		long preis = Math.round(tp * factor);
 		String[] fields = new String[] {

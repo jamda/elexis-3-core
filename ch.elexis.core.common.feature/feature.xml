@@ -2,7 +2,7 @@
 <feature
       id="ch.elexis.core.common.feature"
       label="Elexis OpenSource Common Bundles Feature"
-      version="3.3.0.qualifier"
+      version="3.5.0.qualifier"
       provider-name="elexis.info">
 
    <description>
@@ -299,6 +299,20 @@
 
    <plugin
          id="org.apache.httpcomponents.httpcore"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="ch.elexis.core.findings.templates"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="ch.elexis.core.findings.templates.po"
          download-size="0"
          install-size="0"
          version="0.0.0"

@@ -12,8 +12,6 @@
 
 package ch.elexis.data;
 
-import java.util.List;
-
 import ch.elexis.core.data.interfaces.IFall;
 import ch.elexis.core.data.util.MultiplikatorList;
 import ch.rgw.tools.Money;
@@ -46,7 +44,11 @@ public class Eigenleistung extends VerrechenbarAdapter {
 	
 	@Override
 	public String getCode(){
-		return get(CODE);
+		String ret = get(CODE);
+		if (ret == null || ret.isEmpty()) {
+			ret = getId();
+		}
+		return ret;
 	}
 	
 	@Override
@@ -96,11 +98,6 @@ public class Eigenleistung extends VerrechenbarAdapter {
 		return true;
 	}
 	
-	@Override
-	public String getCodeSystemCode(){
-		return "999";
-	}
-	
 	public int getTP(final TimeTool date, final IFall fall){
 		return getPreis(date, fall).getCents();
 	}
@@ -110,12 +107,6 @@ public class Eigenleistung extends VerrechenbarAdapter {
 			return getVKMultiplikator(date, fall);
 		}
 		return 1.0;
-	}
-	
-	@Override
-	public List<Object> getActions(Object kontext){
-		// TODO Auto-generated method stub
-		return null;
 	}
 	
 }

@@ -58,9 +58,9 @@ import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.core.data.events.ElexisEvent;
 import ch.elexis.core.data.events.ElexisEventDispatcher;
 import ch.elexis.core.data.events.ElexisEventListenerImpl;
-import ch.elexis.core.data.interfaces.IDiagnose;
 import ch.elexis.core.data.util.Extensions;
 import ch.elexis.core.exceptions.ElexisException;
+import ch.elexis.core.model.IDiagnose;
 import ch.elexis.core.ui.Hub;
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.actions.GlobalEventDispatcher;
@@ -559,7 +559,7 @@ public class RechnungsBlatt extends Composite implements IActivationListener {
 					return "  - " + amount + " " + vc.getLabel() + " (" + price.toString() //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 						+ ")"; //$NON-NLS-1$
 				} else if (element instanceof Konsultation) {
-					return ((Konsultation) element).getLabel();
+					return "Konsultation " + ((Konsultation) element).getDatum();
 				} else {
 					return element.toString();
 				}
@@ -672,6 +672,8 @@ public class RechnungsBlatt extends Composite implements IActivationListener {
 					rjj.append(r).append("\n------\n"); //$NON-NLS-1$
 				}
 				tRejects.setText(rjj.toString());
+			} else {
+				tRejects.setText("");
 			}
 			List<String> outputs = actRn.getTrace(Rechnung.OUTPUT);
 			for (String o : outputs) {

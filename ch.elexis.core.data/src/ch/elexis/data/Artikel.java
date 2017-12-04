@@ -131,11 +131,11 @@ public class Artikel extends VerrechenbarAdapter implements IArticle {
 						for (int i = 0; i < values.length; i++) {
 							if (values[i] != null && values[i].length() > 0) {
 								if (i == 0) {
-									se.setMinimumStock(Integer.valueOf(values[i].trim()));
+									se.setMinimumStock(StringTool.parseSafeInt(values[i]));
 								} else if (i == 1) {
-									se.setCurrentStock(Integer.valueOf(values[i].trim()));
+									se.setCurrentStock(StringTool.parseSafeInt(values[i]));
 								} else if (i == 2) {
-									se.setMaximumStock(Integer.valueOf(values[i].trim()));
+									se.setMaximumStock(StringTool.parseSafeInt(values[i]));
 								} else if (i == 3) {
 									se.setProvider(values[i]);
 								}
@@ -504,11 +504,5 @@ public class Artikel extends VerrechenbarAdapter implements IArticle {
 		String pharmacode = getExt(FLD_PHARMACODE);
 		String ean = get(FLD_EAN);
 		return ean + "_" + pharmacode;
-	}
-	
-	@Override
-	public List<Object> getActions(Object kontext){
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 
 import ch.elexis.core.findings.IAllergyIntolerance;
 import ch.elexis.core.findings.ICoding;
@@ -22,6 +26,7 @@ import ch.elexis.core.findings.IObservation.ObservationCode;
 import ch.elexis.core.findings.codes.CodingSystem;
 import ch.elexis.core.findings.fhir.po.model.Encounter;
 import ch.elexis.core.findings.fhir.po.service.FindingsService;
+import ch.elexis.core.findings.migration.IMigratorContribution;
 import ch.elexis.core.findings.migration.IMigratorService;
 import ch.elexis.core.findings.util.ModelUtil;
 import ch.elexis.core.findings.util.model.TransientCoding;
@@ -35,6 +40,21 @@ import ch.rgw.tools.VersionedResource;
 
 @Component
 public class MigratorService implements IMigratorService {
+	
+	private List<IMigratorContribution> contributions = new ArrayList<>();
+	
+	@Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+	public void setMigratorContribution(IMigratorContribution contribution){
+		if(!contributions.contains(contribution)) {
+			contributions.add(contribution);
+		}
+	}
+	
+	public void unsetMigratorContribution(IMigratorContribution contribution){
+		if (contributions.contains(contribution)) {
+			contributions.remove(contribution);
+		}
+	}
 	
 	private FindingsService findingsService;
 	
@@ -52,13 +72,13 @@ public class MigratorService implements IMigratorService {
 			if (filter.isAssignableFrom(ICondition.class)) {
 				migratePatientCondition(patientId);
 			}
-			
 			if (filter.isAssignableFrom(IObservation.class)) {
-				if (ObservationCode.ANAM_PERSONAL.isSame(coding)) {
-					migratePatientPersAnamnese(patientId);
-				}
-				else if (ObservationCode.ANAM_RISK.isSame(coding)) {
-					migratePatientRiskfactors(patientId);
+				if (coding != null) {
+					if (ObservationCode.ANAM_PERSONAL.isSame(coding)) {
+						migratePatientPersAnamnese(patientId);
+					} else if (ObservationCode.ANAM_RISK.isSame(coding)) {
+						migratePatientRiskfactors(patientId);
+					}
 				}
 			}
 			if (filter.isAssignableFrom(IFamilyMemberHistory.class)) {
@@ -66,6 +86,11 @@ public class MigratorService implements IMigratorService {
 			}
 			if (filter.isAssignableFrom(IAllergyIntolerance.class)) {
 				migrateAllergyIntolerance(patientId);
+			}
+			for (IMigratorContribution iMigratorContribution : contributions) {
+				if (iMigratorContribution.canHandlePatientsFindings(filter, coding)) {
+					iMigratorContribution.migratePatientsFindings(patientId, filter, coding);
+				}
 			}
 		}
 	}
