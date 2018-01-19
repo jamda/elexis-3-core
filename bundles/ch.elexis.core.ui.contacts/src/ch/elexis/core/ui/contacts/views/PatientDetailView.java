@@ -159,7 +159,7 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 	void setPatient(Patient p) {
 		patientObservable.setValue(p);
 		scrldfrm.setText(StringTool.unNull(p.getName()) + StringConstants.SPACE + StringTool.unNull(p.getVorname())
-				+ " (" + p.getPatCode() + ")");
+				+ ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_0 + p.getPatCode() + ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_1);
 		compClientCustomText.updateClientCustomArea();
 		stickerComposite.setPatient(p);
 		inpZusatzAdresse.clear();
@@ -296,7 +296,7 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 		{
 			ExpandableComposite compAdditionalAddresses =
 				WidgetFactory.createExpandableComposite(toolkit, scrldfrm,
-				"Zusatzadressen"); // $NON-NLS-1$
+				ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_2); // $NON-NLS-1$
 			compAdditionalAddresses.addExpansionListener(new SectionExpansionHandler());
 			
 			additionalAddresses = new ListDisplay<ZusatzAdresse>(compAdditionalAddresses, SWT.NONE,
@@ -344,10 +344,10 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.valign = TableWrapData.FILL;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectDiagnosen.setLayoutData(twd_sectDiagnosen);
-			sectDiagnosen.setText("Diagnosen");
+			sectDiagnosen.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_3);
 			sectDiagnosen.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectDiagnosen.getText(), false));
 
-			txtDiagnosen = toolkit.createText(sectDiagnosen, "", SWT.WRAP | SWT.MULTI);
+			txtDiagnosen = toolkit.createText(sectDiagnosen, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_4, SWT.WRAP | SWT.MULTI);
 			txtDiagnosen.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtDiagnosen));
 
 			sectDiagnosen.setClient(txtDiagnosen);
@@ -361,10 +361,10 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.grabHorizontal = true;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectAnamnese.setLayoutData(twd_sectDiagnosen);
-			sectAnamnese.setText("Persönliche Anamnese");
+			sectAnamnese.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_5);
 			sectAnamnese.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectAnamnese.getText(), false));
 
-			txtAnamnese = toolkit.createText(sectAnamnese, "", SWT.WRAP | SWT.MULTI);
+			txtAnamnese = toolkit.createText(sectAnamnese, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_6, SWT.WRAP | SWT.MULTI);
 			txtAnamnese.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtAnamnese));
 			sectAnamnese.setClient(txtAnamnese);
 			sectAnamnese.addExpansionListener(new SectionExpansionHandler());
@@ -377,11 +377,11 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.grabHorizontal = true;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectFamAnamnese.setLayoutData(twd_sectDiagnosen);
-			sectFamAnamnese.setText("Familien-Anamnese");
+			sectFamAnamnese.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_7);
 			sectFamAnamnese.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectFamAnamnese.getText(), false));
 
-			txtFamAnamnese = toolkit.createText(sectFamAnamnese, "", SWT.WRAP | SWT.MULTI);
-			txtFamAnamnese.setText("");
+			txtFamAnamnese = toolkit.createText(sectFamAnamnese, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_8, SWT.WRAP | SWT.MULTI);
+			txtFamAnamnese.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_9);
 			txtFamAnamnese.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtFamAnamnese));
 			sectFamAnamnese.setClient(txtFamAnamnese);
 			sectFamAnamnese.addExpansionListener(new SectionExpansionHandler());
@@ -394,11 +394,11 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.grabHorizontal = true;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectAllergien.setLayoutData(twd_sectDiagnosen);
-			sectAllergien.setText("Allergien");
+			sectAllergien.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_10);
 			sectAllergien.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectAllergien.getText(), false));
 
-			txtAllergien = toolkit.createText(sectAllergien, "", SWT.WRAP | SWT.MULTI);
-			txtAllergien.setText("");
+			txtAllergien = toolkit.createText(sectAllergien, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_11, SWT.WRAP | SWT.MULTI);
+			txtAllergien.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_12);
 			txtAllergien.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtAllergien));
 			sectAllergien.setClient(txtAllergien);
 			sectAllergien.addExpansionListener(new SectionExpansionHandler());
@@ -411,11 +411,11 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.grabHorizontal = true;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectRisiken.setLayoutData(twd_sectDiagnosen);
-			sectRisiken.setText("Risiken");
+			sectRisiken.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_13);
 			sectRisiken.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectRisiken.getText(), false));
 
-			txtRisiken = toolkit.createText(sectRisiken, "", SWT.WRAP | SWT.MULTI);
-			txtRisiken.setText("");
+			txtRisiken = toolkit.createText(sectRisiken, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_14, SWT.WRAP | SWT.MULTI);
+			txtRisiken.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_15);
 			txtRisiken.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtRisiken));
 			sectRisiken.setClient(txtRisiken);
 			sectRisiken.addExpansionListener(new SectionExpansionHandler());
@@ -428,11 +428,11 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 			twd_sectDiagnosen.grabHorizontal = true;
 			twd_sectDiagnosen.align = TableWrapData.FILL;
 			sectBemerkungen.setLayoutData(twd_sectDiagnosen);
-			sectBemerkungen.setText("Bemerkungen");
+			sectBemerkungen.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_16);
 			sectBemerkungen.setExpanded(CoreHub.localCfg.get(KEY_PATIENTENBLATT + sectBemerkungen.getText(), false));
 
-			txtBemerkungen = toolkit.createText(sectBemerkungen, "", SWT.WRAP | SWT.MULTI);
-			txtBemerkungen.setText("");
+			txtBemerkungen = toolkit.createText(sectBemerkungen, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_17, SWT.WRAP | SWT.MULTI);
+			txtBemerkungen.setText(ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_18);
 			txtBemerkungen.addListener(SWT.Modify, new MultiLineAutoGrowListener(txtBemerkungen));
 			sectBemerkungen.setClient(txtBemerkungen);
 			sectBemerkungen.addExpansionListener(new SectionExpansionHandler());
@@ -523,7 +523,7 @@ public class PatientDetailView extends ViewPart implements IUnlockable, IActivat
 		bindingContext = new DataBindingContext();
 
 		Text[] control = { txtAllergien, txtAnamnese, txtBemerkungen, txtDiagnosen, txtRisiken, txtFamAnamnese };
-		String[] property = { "allergies", "personalAnamnese", "comment", "diagnosen", "risk", "familyAnamnese" };
+		String[] property = { ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_19, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_20, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_21, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_22, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_23, ch.elexis.core.ui.contacts.views.Messages.PatientDetailView_24 };
 
 		for (int i = 0; i < control.length; i++) {
 			bindValue(control[i], property[i], bindingContext);

@@ -271,15 +271,15 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 					if (ltf.getText().length() == 0)
 						return;
 					try {
-						URI uriMailTo = new URI("mailto", ltf.getText(), null);
+						URI uriMailTo = new URI(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_0, ltf.getText(), null);
 						Desktop.getDesktop().mail(uriMailTo);
 					} catch (URISyntaxException e1) {
 						Status status = new Status(IStatus.WARNING, Hub.PLUGIN_ID,
-							"Error in using mail address " + ltf);
+							ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_1 + ltf);
 						StatusManager.getManager().handle(status, StatusManager.SHOW);
 					} catch (IOException e2) {
 						Status status = new Status(IStatus.WARNING, Hub.PLUGIN_ID,
-							"Error in using mail address " + ltf);
+							ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_2 + ltf);
 						StatusManager.getManager().handle(status, StatusManager.SHOW);
 					}
 				}
@@ -305,7 +305,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 				
 				public void displayContent(PersistentObject po, InputData ltf){
 					Patient p = (Patient) po;
-					String result = "";
+					String result = ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_3;
 					if (p.getStammarzt() != null && p.getStammarzt().exists()) {
 						result = p.getStammarzt().getLabel(true);
 					}
@@ -324,7 +324,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 						Object contactSel = ks.getSelection();
 						if (contactSel == null) {
 							((Patient) po).removeStammarzt();
-							ltf.setText("");
+							ltf.setText(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_4);
 						} else {
 							Kontakt k = (Kontakt) contactSel;
 							((Patient) po).setStammarzt(k);
@@ -353,7 +353,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 							|| (k.istOrganisation() && xd.isDisplayedFor(Organisation.class))) {
 							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom); //$NON-NLS-1$
 						} else if (k.istOrganisation() && xd.isDisplayedFor(Labor.class)) {
-							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom);
+							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_5 + dom);
 						}
 					}
 					
@@ -370,10 +370,10 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 				@Override
 				public void displayContent(PersistentObject po, InputData ltf){
 					Patient p = (Patient) po;
-					String guardianLabel = "";
+					String guardianLabel = ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_6;
 					Kontakt legalGuardian = p.getLegalGuardian();
 					if (legalGuardian != null && legalGuardian.exists()) {
-						guardianLabel = legalGuardian.get(Kontakt.FLD_NAME1) + " "
+						guardianLabel = legalGuardian.get(Kontakt.FLD_NAME1) + ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_7
 							+ legalGuardian.get(Kontakt.FLD_NAME2);
 					}
 					ltf.setText(guardianLabel);
@@ -389,14 +389,14 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 						Messages.Patientenblatt2_selectLegalGuardianMessage, null);
 					ks.enableEmptyFieldButton();
 					if (ks.open() == Dialog.OK) {
-						String guardianLabel = "";
+						String guardianLabel = ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_8;
 						Object contactSel = ks.getSelection();
 						Kontakt legalGuardian = null;
 						
 						// get legal guardian if one is defined
 						if (contactSel != null) {
 							legalGuardian = (Kontakt) contactSel;
-							guardianLabel = legalGuardian.get(Kontakt.FLD_NAME1) + " "
+							guardianLabel = legalGuardian.get(Kontakt.FLD_NAME1) + ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_9
 								+ legalGuardian.get(Kontakt.FLD_NAME2);
 						}
 						((Patient) po).setLegalGuardian(legalGuardian);
@@ -462,26 +462,26 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 			ViewContributionHelper.getFilteredAndPositionSortedContributions(detailComposites, 0);
 		for (IViewContribution ivc : filtered) {
 			if (ivc.getClass().getPackage().getName()
-				.startsWith("ch.elexis.core.findings.ui.viewcontributions")) {
+				.startsWith(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_10)) {
 				if (ivc.isAvailable()) {
 					// remove unstructured diagnosis ui
-					if (ivc.getClass().getSimpleName().equals("DiagnoseViewContribution")) {
+					if (ivc.getClass().getSimpleName().equals(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_11)) {
 						lbExpandable.remove(Messages.Patientenblatt2_diagnosesLbl);
-						dfExpandable.remove("Diagnosen");
+						dfExpandable.remove(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_12);
 					}
 					if (ivc.getClass().getSimpleName()
-						.equals("PersonalAnamnesisViewContribution")) {
+						.equals(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_13)) {
 						lbExpandable.remove(Messages.Patientenblatt2_persAnamnesisLbl);
-						dfExpandable.remove("PersAnamnese");
+						dfExpandable.remove(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_14);
 					}
-					if (ivc.getClass().getSimpleName().equals("RiskViewContribution")) {
+					if (ivc.getClass().getSimpleName().equals(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_15)) {
 						lbExpandable.remove(Messages.Patientenblatt2_risksLbl);
-						dfExpandable.remove("Risiken");
+						dfExpandable.remove(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_16);
 					}
 					if (ivc.getClass().getSimpleName()
-						.equals("AllergyIntoleranceViewContribution")) {
+						.equals(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_17)) {
 						lbExpandable.remove(Messages.Patientenblatt2_allergiesLbl);
-						dfExpandable.remove("Allergien");
+						dfExpandable.remove(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_18);
 					}
 				}
 			}
@@ -588,7 +588,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 		
 		// zusatz adressen
 		compAdditionalAddresses = WidgetFactory.createExpandableComposite(tk, form,
-			"Zusatzadressen"); // $NON-NLS-1$
+			ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_19); // $NON-NLS-1$
 		compAdditionalAddresses.addExpansionListener(ecExpansionListener);
 		
 		additionalAddresses = new ListDisplay<ZusatzAdresse>(compAdditionalAddresses, SWT.NONE,
@@ -979,7 +979,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 							String thisKontaktFLD_SHORT_LABEL = k.get(k.FLD_SHORT_LABEL); // $NON-NLS-1$
 							if (!StringTool.isNothing(thisKontaktFLD_SHORT_LABEL)) {
 								SelectedContactInfosText.append(thisKontaktFLD_SHORT_LABEL)
-									.append(",").append(StringTool.space);
+									.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_20).append(StringTool.space);
 							}
 						}
 						
@@ -1050,12 +1050,12 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 							// "Zusatz" is mapped to "Bezeichnung3" in Person.java.
 							String thisPersonFLD_REMARK = p.get(p.FLD_REMARK); // $NON-NLS-1$
 							if (!StringTool.isNothing(thisPersonFLD_REMARK)) {
-								SelectedContactInfosText.append(",").append(StringTool.space)
+								SelectedContactInfosText.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_21).append(StringTool.space)
 									.append(thisPersonFLD_REMARK);
 							}
 							String thisPersonFLD_NAME3 = p.get(p.FLD_NAME3); // $NON-NLS-1$
 							if (!StringTool.isNothing(thisPersonFLD_NAME3)) {
-								SelectedContactInfosText.append(",").append(StringTool.space)
+								SelectedContactInfosText.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_22).append(StringTool.space)
 									.append(thisPersonFLD_NAME3);
 							}
 							
@@ -1070,7 +1070,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 								// in his letters
 								// without that term:
 								SelectedContactInfosText.append(
-									"," + StringTool.space + new TimeTool(thisPatientBIRTHDATE)
+									ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_23 + StringTool.space + new TimeTool(thisPatientBIRTHDATE)
 										.toString(TimeTool.DATE_GER));
 							}
 						} else { // if (k.istPerson())... else...
@@ -1098,19 +1098,19 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 						String thisAddressFLD_STREET = (String) k.get(k.FLD_STREET);
 						if (!StringTool.isNothing(thisAddressFLD_STREET)) {
 							SelectedContactInfosText
-								.append("," + StringTool.space + thisAddressFLD_STREET);
+								.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_24 + StringTool.space + thisAddressFLD_STREET);
 						}
 						
 						String thisAddressFLD_COUNTRY = (String) k.get(k.FLD_COUNTRY);
 						if (!StringTool.isNothing(thisAddressFLD_COUNTRY)) {
 							SelectedContactInfosText
-								.append("," + StringTool.space + thisAddressFLD_COUNTRY + "-");
+								.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_25 + StringTool.space + thisAddressFLD_COUNTRY + ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_26);
 						}
 						
 						String thisAddressFLD_ZIP = (String) k.get(k.FLD_ZIP);
 						if (!StringTool.isNothing(thisAddressFLD_ZIP)) {
 							if (StringTool.isNothing(thisAddressFLD_COUNTRY)) {
-								SelectedContactInfosText.append("," + StringTool.space);
+								SelectedContactInfosText.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_27 + StringTool.space);
 							}
 							;
 							SelectedContactInfosText.append(thisAddressFLD_ZIP);
@@ -1121,7 +1121,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 						if (!StringTool.isNothing(thisAddressFLD_PLACE)) {
 							if (StringTool.isNothing(thisAddressFLD_COUNTRY)
 								&& StringTool.isNothing(thisAddressFLD_ZIP)) {
-								SelectedContactInfosText.append(",");
+								SelectedContactInfosText.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_28);
 							}
 							;
 							SelectedContactInfosText
@@ -1131,13 +1131,13 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 						String thisAddressFLD_PHONE1 = (String) k.get(k.FLD_PHONE1);
 						if (!StringTool.isNothing(thisAddressFLD_PHONE1)) {
 							SelectedContactInfosText.append(
-								"," + StringTool.space + StringTool.space + thisAddressFLD_PHONE1);
+								ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_29 + StringTool.space + StringTool.space + thisAddressFLD_PHONE1);
 						}
 						
 						String thisAddressFLD_PHONE2 = (String) k.get(k.FLD_PHONE2);
 						if (!StringTool.isNothing(thisAddressFLD_PHONE2)) {
 							SelectedContactInfosText.append(
-								"," + StringTool.space + StringTool.space + thisAddressFLD_PHONE2);
+								ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_30 + StringTool.space + StringTool.space + thisAddressFLD_PHONE2);
 						}
 						
 						String thisAddressFLD_MOBILEPHONE = (String) k.get(k.FLD_MOBILEPHONE);
@@ -1146,7 +1146,7 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 							// SelectedContactInfosText.append(","+StringTool.space+k.FLD_MOBILEPHONE+":"+StringTool.space+thisAddressFLD_MOBILEPHONE);
 							// Without a colon after the label:
 							SelectedContactInfosText
-								.append("," + StringTool.space + k.FLD_MOBILEPHONE
+								.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_31 + StringTool.space + k.FLD_MOBILEPHONE
 									+ StringTool.space + thisAddressFLD_MOBILEPHONE);
 						}
 						
@@ -1155,14 +1155,14 @@ public class Patientenblatt2 extends Composite implements IUnlockable {
 							// With a colon after the label:
 							// SelectedContactInfosText.append(","+StringTool.space+k.FLD_FAX+":"+StringTool.space+thisAddressFLD_FAX);
 							// Without a colon after the label:
-							SelectedContactInfosText.append("," + StringTool.space + k.FLD_FAX
+							SelectedContactInfosText.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_32 + StringTool.space + k.FLD_FAX
 								+ StringTool.space + thisAddressFLD_FAX);
 						}
 						
 						String thisAddressFLD_E_MAIL = (String) k.get(k.FLD_E_MAIL);
 						if (!StringTool.isNothing(thisAddressFLD_E_MAIL)) {
 							SelectedContactInfosText
-								.append("," + StringTool.space + thisAddressFLD_E_MAIL);
+								.append(ch.elexis.core.ui.contacts.views.Messages.Patientenblatt2_33 + StringTool.space + thisAddressFLD_E_MAIL);
 						}
 						
 						/*
